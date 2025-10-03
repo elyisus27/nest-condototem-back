@@ -1,0 +1,1482 @@
+--- Recopilando Información del Proyecto NestJS ---
+
+## 1. Estructura de Carpetas (src - Nivel 4):
+---------------------------------------------------------
+src
+├── app.controller.ts
+├── app.module.ts
+├── app.service.ts
+├── config
+│   └── constants.ts
+├── globals
+│   ├── automation.schedule.ts
+│   ├── message.dto.ts
+│   ├── mysql.schedule.ts
+│   ├── reponse.class.ts
+│   └── tableFilters.dto.ts
+├── main.ts
+├── residential
+│   ├── a.entities
+│   │   ├── devices.entity.ts
+│   │   └── house.entity.ts
+│   ├── devices
+│   │   ├── adb.service.ts
+│   │   ├── condovive.service.ts
+│   │   ├── devices.controller.ts
+│   │   ├── devices.module.ts
+│   │   ├── devices.service.ts
+│   │   └── dto
+│   │       ├── create-device.dto.ts
+│   │       └── update-client.dto.ts
+│   └── house
+│       ├── house.controller.ts
+│       ├── house.module.ts
+│       └── house.service.ts
+└── security
+    ├── auth
+    │   ├── auth.controller.ts
+    │   ├── auth.module.ts
+    │   ├── auth.service.ts
+    │   ├── dto
+    │   │   ├── login.dto.ts
+    │   │   └── update-auth.dto.ts
+    │   ├── payload.interface.ts
+    │   └── strategies
+    │       └── jwt.strategy.ts
+    ├── profile
+    │   ├── dto
+    │   │   ├── create-profile.dto.ts
+    │   │   └── update-profile.dto.ts
+    │   ├── entities
+    │   │   └── profile.entity.ts
+    │   ├── profile.controller.spec.ts
+    │   ├── profile.controller.ts
+    │   ├── profile.module.ts
+    │   ├── profile.service.spec.ts
+    │   └── profile.service.ts
+    ├── user
+    │   ├── dto
+    │   │   ├── create-user.dto.ts
+    │   │   └── update-user.dto.ts
+    │   ├── entities
+    │   │   └── user.entity.ts
+    │   ├── user.controller.spec.ts
+    │   ├── user.controller.ts
+    │   ├── user.module.ts
+    │   ├── user.service.spec.ts
+    │   └── user.service.ts
+    └── user_profile
+        ├── dto
+        │   ├── create-user_profile.dto.ts
+        │   └── update-user_profile.dto.ts
+        ├── entities
+        │   └── user_profile.entity.ts
+        ├── user_profile.controller.spec.ts
+        ├── user_profile.controller.ts
+        ├── user_profile.module.ts
+        ├── user_profile.service.spec.ts
+        └── user_profile.service.ts
+
+20 directories, 53 files
+
+## 2. Archivos de Módulo (*.module.ts):
+---------------------------------------------------------
+### Archivo: src/app.module.ts
+import { Module } from '@nestjs/common';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { AppController } from './app.controller';
+import { AppService } from './app.service';
+import { DATABASE_SYNC, DB_DATABASE, DB_HOST, DB_PASSWORD, DB_PORT, DB_TYPE, DB_USER } from './config/constants';
+import { UserModule } from './security/user/user.module';
+import { ProfileModule } from './security/profile/profile.module';
+import { UserProfileModule } from './security/user_profile/user_profile.module';
+import { MySQLInsertTablesService } from './globals/mysql.schedule';
+import { ScheduleModule } from '@nestjs/schedule';
+import { AuthModule } from './security/auth/auth.module';
+
+import { DevicesModule } from './residential/devices/devices.module';
+import { AutomationSchedule } from './globals/automation.schedule';
+
+
+
+@Module({
+  imports: [
+    ConfigModule.forRoot({
+      envFilePath: '.env',
+      isGlobal: true
+    }),
+    TypeOrmModule.forRootAsync({
+      imports: [ConfigModule],
+      useFactory: (configService: ConfigService) => ({
+        type: configService.get<any>(DB_TYPE),
+        timezone :'Z',
+        host: configService.get<string>(DB_HOST),
+        port: +configService.get<number>(DB_PORT),
+        username: configService.get<string>(DB_USER),
+        password: configService.get<string>(DB_PASSWORD),
+        database: configService.get<string>(DB_DATABASE),
+        entities: [__dirname + '/**/*.entity.{js,ts}'],
+        synchronize: configService.get<string>(DATABASE_SYNC) == '1',
+        logging: false
+      }),
+      inject: [ConfigService],
+    }),
+    ScheduleModule.forRoot(),
+
+    UserModule,
+    ProfileModule,
+    UserProfileModule,
+    AuthModule,
+
+    DevicesModule,
+
+    
+
+  ],
+  controllers: [AppController],
+  providers: [AppService, MySQLInsertTablesService],
+})
+export class AppModule { }
+
+### Archivo: src/residential/devices/devices.module.ts
+import { Module } from '@nestjs/common';
+import { DevicesService } from './devices.service';
+import { DevicesController } from './devices.controller';
+import { Devices } from '../a.entities/devices.entity';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { CondoviveService } from './condovive.service';
+import { AdbService } from './adb.service';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([Devices])],
+  controllers: [DevicesController],
+  providers: [DevicesService, CondoviveService, AdbService]
+})
+export class DevicesModule { }
+
+### Archivo: src/residential/house/house.module.ts
+import { Module } from '@nestjs/common';
+import { HouseService } from './house.service';
+import { HouseController } from './house.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+// import { ResHouse } from './entities/house.entity';
+// import { ResClient } from '../client/entities/client.entity';
+
+@Module({
+  //imports: [TypeOrmModule.forFeature([ResHouse, ResClient])],
+  controllers: [HouseController],
+  providers: [HouseService]
+})
+export class HouseModule {}
+
+### Archivo: src/security/auth/auth.module.ts
+import { Module } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { AuthController } from './auth.controller';
+import { TypeOrmModule } from '@nestjs/typeorm';
+import { SecUser } from '../user/entities/user.entity';
+import { SecProfile } from '../profile/entities/profile.entity';
+import { PassportModule } from '@nestjs/passport';
+import { JwtModule } from '@nestjs/jwt';
+import { ConfigModule, ConfigService } from '@nestjs/config';
+import { JWT_SECRET } from '../../config/constants';
+import { JwtStrategy } from './strategies/jwt.strategy';
+
+
+@Module({
+  imports: [
+    TypeOrmModule.forFeature([SecUser, SecProfile,]),
+    PassportModule.register({
+      defaultStrategy: 'jwt'
+    }),
+    JwtModule.registerAsync({
+      imports: [ConfigModule],
+      useFactory: async (configService: ConfigService) => ({
+        secret: configService.get(JWT_SECRET),
+        signOptions: {
+          expiresIn: "1h"//200
+        }
+      }),
+      inject: [ConfigService],
+    }),
+  ],
+  providers: [AuthService, ConfigService, JwtStrategy],
+  controllers: [AuthController],
+  exports: [PassportModule, JwtStrategy]
+})
+export class AuthModule { }
+
+### Archivo: src/security/profile/profile.module.ts
+import { Module } from '@nestjs/common';
+import { ProfileService } from './profile.service';
+import { ProfileController } from './profile.controller';
+import { SecProfile } from './entities/profile.entity';
+import { Repository } from 'typeorm';
+import { TypeOrmModule } from '@nestjs/typeorm';
+
+@Module({
+  imports: [TypeOrmModule.forFeature([SecProfile,])],
+  controllers: [ProfileController],
+  providers: [ProfileService]
+})
+export class ProfileModule { }
+
+### Archivo: src/security/user/user.module.ts
+import { Module } from '@nestjs/common';
+import { UserService } from './user.service';
+import { UserController } from './user.controller';
+
+@Module({
+  controllers: [UserController],
+  providers: [UserService]
+})
+export class UserModule {}
+
+### Archivo: src/security/user_profile/user_profile.module.ts
+import { Module } from '@nestjs/common';
+import { UserProfileService } from './user_profile.service';
+import { UserProfileController } from './user_profile.controller';
+
+@Module({
+  controllers: [UserProfileController],
+  providers: [UserProfileService]
+})
+export class UserProfileModule {}
+
+
+## 3. Archivos de Controlador (*.controller.ts):
+---------------------------------------------------------
+### Archivo: src/app.controller.ts
+import { Controller, Get } from '@nestjs/common';
+import { AppService } from './app.service';
+
+@Controller()
+export class AppController {
+  constructor(private readonly appService: AppService) {}
+
+  @Get()
+  getHello(): string {
+    return this.appService.getHello();
+  }
+}
+
+### Archivo: src/residential/devices/devices.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe } from '@nestjs/common';
+import { DevicesService } from './devices.service';
+import { CreateDeviceDto } from './dto/create-device.dto';
+import { UpdateDeviceDto } from './dto/update-client.dto';
+import { TableFiltersDto } from '../../globals/tableFilters.dto';
+
+@Controller('devices')
+export class DevicesController {
+  constructor(private readonly deviceService: DevicesService) {}
+
+  @Post()
+  create(@Body() createClientDto: CreateDeviceDto) {
+    return this.deviceService.create(createClientDto);
+  }
+
+  @Get()
+  findAll() {
+    return this.deviceService.findAll();
+  }
+
+  @Get('listPaginated')
+  listPaginated(@Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('searchtxt',) searchtxt: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('showInactives', ParseBoolPipe) showInactives: boolean,) {
+
+    const filters: TableFiltersDto = {
+      page: page,
+      limit: limit,
+      searchtxt: searchtxt,
+      start: new Date(`${start}T00:00:00.000-06:00`),
+      end: new Date(`${end}T23:59:59.0000-06:00`),
+      showInactives: showInactives
+    }
+
+    return this.deviceService.listPaginated(filters)
+  }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.deviceService.findOne(+id);
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
+  //   return this.deviceService.update(+id, updateClientDto);
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.deviceService.remove(+id);
+  // }
+}
+
+### Archivo: src/residential/house/house.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, ParseBoolPipe, ParseIntPipe, Query } from '@nestjs/common';
+import { HouseService } from './house.service';
+// import { CreateHouseDto } from './dto/create-house.dto';
+// import { UpdateHouseDto } from './dto/update-house.dto';
+import { TableFiltersDto } from '../../globals/tableFilters.dto';
+
+@Controller('house')
+export class HouseController {
+  constructor(private readonly houseService: HouseService) {}
+
+  // @Post()
+  // create(@Body() createHouseDto: CreateHouseDto) {
+  //   return this.houseService.create(createHouseDto);
+  // }
+
+  @Get()
+  findAll() {
+    return this.houseService.findAll();
+  }
+
+  @Get('listPaginated')
+  listPaginatedWpfTest(
+    //all Get Requests whom receive query params are supposed to use nestjscommon parse pipes, 
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('searchtxt',) searchtxt: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('showInactives', ParseBoolPipe) showInactives: boolean,) {
+
+    //console.log('dates rec', start, end)
+    const filters: TableFiltersDto = {
+      page: page,
+      limit: limit,
+      searchtxt: searchtxt,
+      start: new Date(`${start}T00:00:00.000-06:00`),//Aproach1 
+      end: new Date(`${end}T23:59:59.0000-06:00`),//Approach1 
+      //start: new Date(`${start}T00:00:00.000Z`), //Appr2
+      //end: new Date(`${end}T23:59:59.000Z`), //Appr2
+      showInactives: showInactives
+    }
+    //console.log('ya con datatype', filters)
+
+    return this.houseService.listPaginated(filters)
+  }
+
+  @Get(':id')
+  findOne(@Param('id') id: string) {
+    return this.houseService.findOne(+id);
+  }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateHouseDto: UpdateHouseDto) {
+  //   return this.houseService.update(+id, updateHouseDto);
+  // }
+
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.houseService.remove(+id);
+  }
+}
+
+### Archivo: src/security/auth/auth.controller.ts
+import { Controller, Get, Post, Body, ValidationPipe, UsePipes, UnauthorizedException, UseGuards, } from '@nestjs/common';
+import { AuthService } from './auth.service';
+import { LoginDto } from './dto/login.dto';
+import { AuthGuard } from '@nestjs/passport';
+//mport { UpdateAuthDto } from './dto/update-auth.dto';
+
+@Controller('auth')
+export class AuthController {
+  constructor(private readonly authService: AuthService) { }
+
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @Post('login')
+  create(@Body() createAuthDto: LoginDto) {
+    return this.authService.login(createAuthDto);
+  }
+
+  @Post('logout')
+  signout(req, res) {
+    try {
+      req.session = null;
+      return res.status(200).send({
+        message: "You've been signed out!"
+      });
+    } catch (err) {
+      //this.next(err);
+      return { success: false, message: "Error al logout", error: err }
+    }
+
+  }
+
+  
+  //getmoderator, getuser, getadmin
+  @Get('/all')
+  gettest() {
+    return "INFORMACION PUBLICA"
+  }
+  
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/mod')
+  getMod() {
+    return "INFORMACION DEL MODERADOR"
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/usr')
+  getUser() {
+    return "INFORMACION DEL USER"
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get('/adm')
+  getAdmin() {
+    return "INFORMACION DEL ADMIN"
+  }
+
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @Post('postest')
+  posttest(@Body() createAuthDto: LoginDto) {
+    return new UnauthorizedException();
+  }
+
+  // @Post()
+  // create(@Body() createAuthDto: CreateAuthDto) {
+  //   return this.authService.create(createAuthDto);
+  // }
+
+  // @Get()
+  // findAll() {
+  //   return this.authService.findAll();
+  // }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.authService.findOne(+id);
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateAuthDto: UpdateAuthDto) {
+  //   return this.authService.update(+id, updateAuthDto);
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.authService.remove(+id);
+  // }
+}
+
+### Archivo: src/security/profile/profile.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { ProfileService } from './profile.service';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { AuthGuard } from '@nestjs/passport';
+
+@Controller('profile')
+export class ProfileController {
+  constructor(private readonly profileService: ProfileService) { }
+
+  // @Post()
+  // create(@Body() createProfileDto: CreateProfileDto) {
+  //   return this.profileService.create(createProfileDto);
+  // }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Get()
+  findAll() {
+    return this.profileService.findAll();
+  }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.profileService.findOne(+id);
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateProfileDto: UpdateProfileDto) {
+  //   return this.profileService.update(+id, updateProfileDto);
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.profileService.remove(+id);
+  // }
+}
+
+### Archivo: src/security/user/user.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete, UsePipes, ValidationPipe, UseGuards } from '@nestjs/common';
+import { UserService } from './user.service';
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { AuthGuard } from '@nestjs/passport';
+
+@Controller('user')
+export class UserController {
+  constructor(private readonly userService: UserService) { }
+
+  @UsePipes(new ValidationPipe({ whitelist: true }))
+  @Post()
+  create(@Body() createUserDto: CreateUserDto) {
+    return this.userService.create(createUserDto);
+  }
+  
+  @UseGuards(AuthGuard('jwt'))
+  @Get()
+  findAll() {
+    return this.userService.findAll();
+  }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.userService.findOne(+id);
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto) {
+  //   return this.userService.update(+id, updateUserDto);
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.userService.remove(+id);
+  // }
+}
+
+### Archivo: src/security/user_profile/user_profile.controller.ts
+import { Controller, Get, Post, Body, Patch, Param, Delete } from '@nestjs/common';
+import { UserProfileService } from './user_profile.service';
+import { CreateUserProfileDto } from './dto/create-user_profile.dto';
+import { UpdateUserProfileDto } from './dto/update-user_profile.dto';
+
+@Controller('user-profile')
+export class UserProfileController {
+  constructor(private readonly userProfileService: UserProfileService) {}
+
+  // @Post()
+  // create(@Body() createUserProfileDto: CreateUserProfileDto) {
+  //   return this.userProfileService.create(createUserProfileDto);
+  // }
+
+  // @Get()
+  // findAll() {
+  //   return this.userProfileService.findAll();
+  // }
+
+  // @Get(':id')
+  // findOne(@Param('id') id: string) {
+  //   return this.userProfileService.findOne(+id);
+  // }
+
+  // @Patch(':id')
+  // update(@Param('id') id: string, @Body() updateUserProfileDto: UpdateUserProfileDto) {
+  //   return this.userProfileService.update(+id, updateUserProfileDto);
+  // }
+
+  // @Delete(':id')
+  // remove(@Param('id') id: string) {
+  //   return this.userProfileService.remove(+id);
+  // }
+}
+
+
+## 4. Archivos de Servicio (*.service.ts):
+---------------------------------------------------------
+### Archivo: src/app.service.ts
+import { Injectable } from '@nestjs/common';
+
+@Injectable()
+export class AppService {
+  getHello(): string {
+    return 'CondoviveTotem API working!';
+  }
+}
+
+### Archivo: src/residential/devices/adb.service.ts
+// src/adb/adb.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+import { spawn } from 'child_process';
+import { EventEmitter } from 'events';
+import { Devices } from '../a.entities/devices.entity';
+
+// Puedes definir una interfaz o tipo para los dispositivos si lo necesitas
+// interface AdbDevice {
+//   id: number;
+//   serial: string; // El serial del dispositivo
+//   // Otras propiedades de tu entidad Devices
+// }
+
+type CameraState = 'expired' | 'valid' | 'unknown';
+
+@Injectable()
+export class AdbService {
+  private readonly deviceSerial: string;
+  private readonly logger: Logger;
+  private logProcess: any;
+  private cameraEvent = new EventEmitter();
+
+  constructor(device: Devices) {
+    this.deviceSerial = device.adbDevice;
+    this.logger = new Logger(`AdbService - ${this.deviceSerial}`);
+  }
+
+  // Métodos privados para manejar los comandos de ADB
+  private runAdb(args: string[]): Promise<void> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn('adb', ['-s', this.deviceSerial, ...args]);
+      proc.on('close', (code) => {
+        if (code === 0) {
+          resolve();
+        } else {
+          reject(new Error(`ADB command failed with code ${code}`));
+        }
+      });
+      proc.on('error', (err) => reject(err));
+    });
+  }
+
+  private dumpUI(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn('adb', ['-s', this.deviceSerial, 'exec-out', 'uiautomator', 'dump', '/dev/tty']);
+      let output = '';
+      proc.stdout.on('data', (data) => (output += data.toString()));
+      proc.stderr.on('data', (err) => this.logger.error(`[DUMP] Error obteniendo UI: ${err.toString()}`));
+      proc.on('close', () => resolve(output));
+      proc.on('error', reject);
+    });
+  }
+
+  // Los demás métodos como `tap`, `swipe`, `delay` se mantienen y usan `this.deviceSerial`
+  public delay(ms: number) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+  }
+
+  public async tap(x: number, y: number) {
+    await this.runAdb(['shell', 'input', 'tap', x.toString(), y.toString()]);
+  }
+
+  public async swipe(x1: number, y1: number, x2: number, y2: number, duration: number) {
+    await this.runAdb(['shell', 'input', 'swipe', x1.toString(), y1.toString(), x2.toString(), y2.toString(), duration.toString()]);
+  }
+
+  // Ahora, tus métodos de negocio
+  public async initApp() {
+    this.logger.log('[INIT] Cerrando app...');
+    await this.runAdb(['shell', 'am', 'force-stop', 'com.condovive.guard']);
+    await this.delay(1000);
+    this.logger.log('[INIT] Limpiando logcat...');
+    await this.runAdb(['logcat', '-c']);
+    await this.delay(1000);
+    await this.runAdb(['shell', 'monkey', '-p', 'com.condovive.guard', '-c', 'android.intent.category.LAUNCHER', '1']);
+    await this.delay(10000);
+    this.logger.log('[INIT] 🟢 Condovive iniciado');
+  }
+
+  // Los demás métodos de negocio (`goToCamera`, `aceptarVisita`, etc.) se mantienen aquí.
+}
+### Archivo: src/residential/devices/condovive.service.ts
+// src/condovive/condovive.service.ts
+import { Injectable, Logger } from '@nestjs/common';
+import { AdbService } from './adb.service';
+import EventEmitter from 'events';
+
+@Injectable()
+export class CondoviveService {
+    private readonly logger: Logger;
+    public running = false;
+
+    // Lógica de Eventos y Estados
+    private readonly triggerLog = 'disconnect: Disconnected client for camera 1';
+    private firstStart = true;
+    private cameraEvent = new EventEmitter();
+    private logProcess: any;
+
+    constructor(private readonly adbService: AdbService) {
+        this.logger = new Logger(`CondoviveService - ${this.adbService['deviceSerial']}`);
+    }
+
+    public async run() {
+        this.running = true;
+        await this.adbService.initApp(); // Usamos el servicio inyectado
+        await this.runAutomationLoop();
+    }
+
+    // Tus métodos de negocio como `runAutomationLoop`, `goToCamera`, `aceptarVisita`, `denegarVisita`
+    // Se trasladan a este servicio y llaman a los métodos del `this.adbService`
+    public async runAutomationLoop() {
+        // ... tu lógica actual, pero usando `this.adbService.delay`, `this.adbService.tap`, etc.
+        // ... la promesa y la emisión de eventos también se quedan aquí
+    }
+}
+### Archivo: src/residential/devices/devices.service.ts
+import { Injectable, Logger, NotFoundException } from '@nestjs/common';
+import { CreateDeviceDto } from './dto/create-device.dto';
+import { UpdateDeviceDto } from './dto/update-client.dto';
+import { Devices } from '../a.entities/devices.entity';
+import { DataSource, MoreThanOrEqual, Repository } from 'typeorm';
+import { MessageDto } from '../../globals/message.dto';
+import { TableFiltersDto } from '../../globals/tableFilters.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+import { CondoviveService } from './condovive.service';
+import { AdbService } from './adb.service';
+
+@Injectable()
+export class DevicesService {
+  private readonly logger = new Logger('DevicesService');
+  private activeDevices: { [serial: string]: CondoviveService } = {};
+  constructor(
+    private ds: DataSource,
+    @InjectRepository(Devices)
+    private devRepo: Repository<Devices>,
+
+  ) { }
+
+  create(createClientDto: CreateDeviceDto) {
+    return 'This action adds a new client';
+  }
+
+  async findAll() {
+    const repoHouse = this.ds.getRepository<Devices>(Devices)
+    // const houses = await repoHouse.find();
+
+    try {
+      const queryBuilder = repoHouse.createQueryBuilder('d')
+      let houses = await queryBuilder.getMany();
+      if (!houses) throw new NotFoundException(new MessageDto('lista vacía'))
+      return houses
+    } catch (error) {
+      console.log(error)
+      throw new NotFoundException(new MessageDto(error.message))
+    }
+  }
+
+  async listPaginated(filters: TableFiltersDto) {
+
+    try {
+      let tagActivefilter = filters.showInactives == true ? 0 : 1;
+
+      const SKIP = filters.limit * (filters.page - 1);
+
+      const qb = this.devRepo.createQueryBuilder('q')
+        //.select('q.deviceId')
+        .skip(SKIP)
+        .take(filters.limit)
+      //   .where(
+      //     [{
+      //       //loadingDate: Between(filters.start, filters.end), //and
+      //       tagActive: MoreThanOrEqual(tagActivefilter),//and
+      //       //comments: Like(`%${filters.searchtxt}%`) ,//and
+      //     },//or
+      //     {
+      //       //loadingDate: Between(filters.start, filters.end),
+      //       tagActive: MoreThanOrEqual(tagActivefilter),
+      //       //clientName: Like(`%${filters.searchtxt}%`),
+
+      //     },
+      //     ],
+      //   )
+
+
+
+
+      const total = await qb.getCount();
+      const list = await qb.getMany();
+
+
+      return { success: true, data: { items: list, totalItems: total } };
+    } catch (error) {
+      return { success: false, message: error.message, error: error }
+    }
+
+
+  }
+
+
+  // Este método se encargará de inicializar los servicios
+  public async initializeServices() {
+    this.logger.log('Cargando dispositivos de la base de datos...');
+    const devices = await this.devRepo.find(); // Obtener todos los dispositivos
+
+    if (devices.length === 0) {
+      this.logger.warn('No se encontraron dispositivos en la base de datos.');
+      return;
+    }
+
+    // Por cada dispositivo, creamos una instancia de AdbService y CondoviveService
+    for (const device of devices) {
+      this.logger.log(`Inicializando servicio para el dispositivo: ${device.adbDevice},. ${device.deviceName}`);
+      const adbService = new AdbService(device); // Instancia del servicio ADB
+      const condoviveService = new CondoviveService(adbService); // Servicio de la lógica de negocio
+      this.activeDevices[device.adbDevice] = condoviveService;
+    }
+
+    this.logger.log(`Servicios de ${devices.length} dispositivos inicializados.`);
+  }
+
+  public getService(serial: string): CondoviveService | undefined {
+    return this.activeDevices[serial];
+  }
+
+  public getAllServices(): CondoviveService[] {
+    return Object.values(this.activeDevices);
+  }
+}
+
+### Archivo: src/residential/house/house.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
+// import { CreateHouseDto } from './dto/create-house.dto';
+// import { UpdateHouseDto } from './dto/update-house.dto';
+import { Between, DataSource, Like, MoreThanOrEqual, Repository } from 'typeorm';
+//import { ResHouse } from './entities/house.entity';
+
+import { TableFiltersDto } from '../../globals/tableFilters.dto';
+import { InjectRepository } from '@nestjs/typeorm';
+
+import { MessageDto } from '../../globals/message.dto';
+import { ResHouse } from '../a.entities/house.entity';
+import { Devices } from '../a.entities/devices.entity';
+
+@Injectable()
+export class HouseService {
+  constructor(
+    private ds: DataSource,
+    @InjectRepository(Devices)
+    private clientRepo: Repository<Devices>,
+  ) { }
+
+  // create(createHouseDto: CreateHouseDto) {
+  //   return 'This action adds a new house';
+  // }
+
+  async findAll() {
+    const repoHouse = this.ds.getRepository<ResHouse>(ResHouse)
+    // const houses = await repoHouse.find();
+
+    try {
+      const queryBuilder = repoHouse.createQueryBuilder('h')
+        .innerJoinAndSelect('h.clients', 'clients')
+        .select('h.houseId', 'houseId')
+        .addSelect('h.street', 'street')
+        .addSelect('h.exteriorNumber', 'exteriorNumber')
+        .addSelect('clients.lastName', 'lastName')
+        .addSelect('clients.motherLastName', 'motherLastName')
+        .addSelect('clients.firstName', 'firstName')
+        .addSelect('h.debtor', 'debtor')
+
+      let houses = await queryBuilder.getRawMany();
+      if (!houses) throw new NotFoundException(new MessageDto('lista vacía'))
+      return houses
+    } catch (error) {
+      console.log(error)
+      throw new NotFoundException(new MessageDto(error.message))
+    }
+  }
+
+  async listPaginated(filters: TableFiltersDto) {
+    
+    //where col1=value1 and col2=vlaue2 or col3=value3 or col4=value4
+    //[{prop1:'value1', prop2:'value2'}, {prop2:'value3'}]    inside objects are ands. array objects are ors
+    //ands must repeat at every object, ors are separated by objects
+    let tagActivefilter = filters.showInactives == true ? 0 : 1;
+
+    const SKIP = filters.limit * (filters.page - 1);
+    // const list = await this.saleRepo.findAndCount({
+    //   skip: SKIP,
+    //   take: filters.limit,
+    //   where: [{
+    //     loadingDate: Between(filters.start, filters.end), //and
+    //     tagActive: MoreThanOrEqual(tagActivefilter),//and
+    //     comments: Like(`%${filters.searchtxt}%`) ,//and
+    //   },//or
+    //   {
+    //     loadingDate: Between(filters.start, filters.end),
+    //     tagActive: MoreThanOrEqual(tagActivefilter),
+    //     clientName: Like(`%${filters.searchtxt}%`),
+
+    //   },
+    //   ],
+    // })
+
+
+    //testeando forma query 
+    const queryBuilder = this.clientRepo.createQueryBuilder('q')
+      .skip( SKIP)
+      .take( filters.limit)
+      .where(
+        [{
+          //loadingDate: Between(filters.start, filters.end), //and
+          tagActive: MoreThanOrEqual(tagActivefilter),//and
+          //comments: Like(`%${filters.searchtxt}%`) ,//and
+        },//or
+        {
+          //loadingDate: Between(filters.start, filters.end),
+          tagActive: MoreThanOrEqual(tagActivefilter),
+          //clientName: Like(`%${filters.searchtxt}%`),
+  
+        },
+        ],
+        )
+      
+    const list = await queryBuilder.getManyAndCount();
+    //end testeando forma query
+
+    //console.log('leidos', list[0])
+    return { success: true, data: { items: list[0], totalItems: list[1] } };
+
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} house`;
+  }
+
+  // update(id: number, updateHouseDto: UpdateHouseDto) {
+  //   return `This action updates a #${id} house`;
+  // }
+
+  remove(id: number) {
+    return `This action removes a #${id} house`;
+  }
+}
+
+### Archivo: src/security/auth/auth.service.ts
+import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { MessageDto } from '../../globals/message.dto';
+import { DataSource } from 'typeorm';
+import { SecUser } from '../user/entities/user.entity';
+import { LoginDto } from './dto/login.dto';
+import { compare } from 'bcryptjs';
+import { PayloadInterface } from './payload.interface';
+import { JwtService } from '@nestjs/jwt';
+import { SecUserProfile } from '../user_profile/entities/user_profile.entity';
+import { USERWHITESPACABLE_TYPES } from '@babel/types';
+//import { UpdateAuthDto } from './dto/update-auth.dto';
+
+@Injectable()
+export class AuthService {
+  constructor(
+    private ds: DataSource,
+    private readonly jwtService: JwtService
+  ) { }
+  async login(loginDto: LoginDto): Promise<any> {
+    const userRepo = this.ds.getRepository<SecUser>(SecUser);
+    const { username } = loginDto;
+
+    const queryBuilder = userRepo.createQueryBuilder('u')
+      .innerJoinAndSelect('u.userProfiles', 'userProfiles')
+      .innerJoinAndSelect('userProfiles.profile', 'profile')
+      .where([{ username: username }, { email: username }])
+    const user = await queryBuilder.getOne();
+
+    if (!user) throw new UnauthorizedException(new MessageDto('no existe el usuario'));
+    const passwordOK = await compare(loginDto.password, user.password);
+    if (!passwordOK) throw new UnauthorizedException(new MessageDto('contraseña errónea'));
+
+    
+    const payload: PayloadInterface = {
+      id: user.userId,
+      username: user.username,
+      email: user.email,
+      profiles: user.userProfiles.map((rol: SecUserProfile) => {
+        return (rol.profile).profileName;
+      })
+    };
+
+
+    const token = await this.jwtService.sign(payload);
+
+
+    return {
+      success: true, data: { token: token }
+    };
+  }
+
+  // findAll() {
+  //   return `This action returns all auth`;
+  // }
+
+  // findOne(id: number) {
+  //   return `This action returns a #${id} auth`;
+  // }
+
+  // update(id: number, updateAuthDto: UpdateAuthDto) {
+  //   return `This action updates a #${id} auth`;
+  // }
+
+  // remove(id: number) {
+  //   return `This action removes a #${id} auth`;
+  // }
+}
+
+### Archivo: src/security/profile/profile.service.ts
+import { Injectable, NotFoundException } from '@nestjs/common';
+import { InjectRepository } from '@nestjs/typeorm';
+import { MessageDto } from '../../globals/message.dto';
+import { DataSource, Repository } from 'typeorm';
+import { CreateProfileDto } from './dto/create-profile.dto';
+import { UpdateProfileDto } from './dto/update-profile.dto';
+import { SecProfile } from './entities/profile.entity';
+
+@Injectable()
+export class ProfileService {
+  constructor(
+    @InjectRepository(SecProfile)
+    private repoProfile: Repository<SecProfile>,
+
+  ) { }
+  create(createProfileDto: CreateProfileDto) {
+    return 'This action adds a new profile';
+  }
+
+  async findAll() {
+    const profiles = await this.repoProfile.find()
+    if (!profiles) throw new NotFoundException(new MessageDto('no hay perfiles en la lista'))
+    return profiles
+
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} profile`;
+  }
+
+  update(id: number, updateProfileDto: UpdateProfileDto) {
+    return `This action updates a #${id} profile`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} profile`;
+  }
+}
+
+### Archivo: src/security/user/user.service.ts
+import { BadRequestException, Injectable, InternalServerErrorException, NotFoundException } from '@nestjs/common';
+
+
+import { DataSource } from 'typeorm';
+import { SecProfile } from '../profile/entities/profile.entity';
+
+import { CreateUserDto } from './dto/create-user.dto';
+import { UpdateUserDto } from './dto/update-user.dto';
+import { SecUser } from './entities/user.entity';
+import { MessageDto } from '../../globals/message.dto';
+
+@Injectable()
+export class UserService {
+  constructor(
+    private ds: DataSource,
+  ) { }
+
+
+  async create(createUserDto: CreateUserDto) {
+
+    const { username, email } = createUserDto;
+    const repo = this.ds.getRepository<SecUser>(SecUser);
+    const exists = await repo.findOne({ where: [{ username: username }, { email: email }], })
+    if (exists) throw new BadRequestException(new MessageDto('ese usuario ya existe'));
+    const user = this.ds.getRepository<SecUser>(SecUser).create(createUserDto);
+    await this.ds.getRepository<SecUser>(SecUser).save(user)
+    return new MessageDto('usuario creado');
+
+  }
+
+  async findAll() {
+    const repousers = this.ds.getRepository<SecUser>(SecUser)
+
+    const users = await repousers.find(); //Funciona pero no le sacamos jugo a las relaciones
+
+    //Region una query con joins
+    // const queryBuilder = repousers.createQueryBuilder('u')
+    //   .innerJoinAndSelect('u.userProfiles', 'userProfiles')
+    //   .innerJoinAndSelect('userProfiles.profile', 'profile')
+    // const users = await queryBuilder.getMany();
+    //endRegion
+
+    //#region test query con joins and selects
+    // const queryBuilder = repousers.createQueryBuilder('u')
+    //   .innerJoinAndSelect('u.userProfiles', 'userProfiles')
+    //   .innerJoinAndSelect('userProfiles.profile', 'profile')
+    //   .select('u.firstName', 'firstName') //ya en esta version no hay que escribir aliases, para que lo instancie a la entidad? o como ? 
+    //   .addSelect('u.lastName', 'lastName')
+    //   .addSelect('u.password', 'password')
+    //   .addSelect('profile.profileName', 'profileName')
+    // let users = await queryBuilder.getRawMany();
+    //#endregion
+
+    //#region test tree
+    //const treeCategories = await dataSource.manager.getTreeRepository(Category).findTrees()
+    //const users = await repousers.manager.getTreeRepository(SecUser).findTrees();
+
+
+    if (!users) throw new NotFoundException(new MessageDto('no hay usuarios en la lista'))
+    return users
+
+  }
+
+
+
+
+  findOne(id: number) {
+    return `This action returns a #${id} user`;
+  }
+
+  update(id: number, updateUserDto: UpdateUserDto) {
+    return `This action updates a #${id} user`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} user`;
+  }
+}
+
+### Archivo: src/security/user_profile/user_profile.service.ts
+import { Injectable } from '@nestjs/common';
+import { CreateUserProfileDto } from './dto/create-user_profile.dto';
+import { UpdateUserProfileDto } from './dto/update-user_profile.dto';
+
+@Injectable()
+export class UserProfileService {
+  create(createUserProfileDto: CreateUserProfileDto) {
+    return 'This action adds a new userProfile';
+  }
+
+  findAll() {
+    return `This action returns all userProfile`;
+  }
+
+  findOne(id: number) {
+    return `This action returns a #${id} userProfile`;
+  }
+
+  update(id: number, updateUserProfileDto: UpdateUserProfileDto) {
+    return `This action updates a #${id} userProfile`;
+  }
+
+  remove(id: number) {
+    return `This action removes a #${id} userProfile`;
+  }
+}
+
+
+## 5. Archivos DTO (*.dto.ts):
+---------------------------------------------------------
+### Archivo: src/globals/message.dto.ts
+export class MessageDto {
+    message: string[] = [];
+
+    constructor(message: string) {
+        this.message[0] = message;
+    }
+}
+### Archivo: src/globals/tableFilters.dto.ts
+export class TableFiltersDto {
+
+    limit?: number;
+    page?: number;
+    searchtxt?: string;
+    start?: Date;
+    end?: Date;
+    showInactives?: boolean;
+
+    constructor() {
+        this.limit = 25,
+        this.page = 1,
+        this.searchtxt = ''
+        //this.start=new Date()
+        //this.end= Date.now()
+        this.showInactives=false
+    }
+}
+### Archivo: src/residential/devices/dto/create-device.dto.ts
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsNotEmpty, IsOptional, Length } from "class-validator";
+
+export class CreateDeviceDto {
+
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'device name' })
+    deviceName: string;
+
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'device description' })
+    description: string;
+
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'adb device name' })
+    adb_device: string;
+
+}
+
+### Archivo: src/residential/devices/dto/update-client.dto.ts
+import { PartialType } from '@nestjs/swagger';
+import { CreateDeviceDto } from './create-device.dto';
+
+export class UpdateDeviceDto extends PartialType(CreateDeviceDto) { }
+
+### Archivo: src/security/auth/dto/login.dto.ts
+import { IsNotEmpty, MaxLength, MinLength } from "class-validator";
+export class LoginDto {
+    // @IsEmail()
+    // email: string;
+
+    @MinLength(4, { message: 'usuario: longitud minima de 4' })
+    @IsNotEmpty({ message: 'el usuario no puede estar vacío' })
+    @MaxLength(100, { message: 'nombre de usuario: longitud máxima de 100' })
+    username: string
+
+
+    @MinLength(4, { message: 'password: longitud minima de 4' })
+    @MaxLength(100, { message: 'password: longitud máxima de 100' })
+    @IsNotEmpty({ message: 'la contraseña del usuario no puede estar vacía' })
+    password: string
+
+
+
+
+}
+
+### Archivo: src/security/auth/dto/update-auth.dto.ts
+// import { PartialType } from '@nestjs/swagger';
+// import { loginDto } from './login.dto';
+
+// export class UpdateAuthDto extends PartialType(loginDto) { }
+
+### Archivo: src/security/profile/dto/create-profile.dto.ts
+
+import { ApiProperty, ApiPropertyOptional } from "@nestjs/swagger";
+import { IsNotEmpty, IsOptional, validate } from "class-validator";
+import { ResponseGeneric } from "../../../globals/reponse.class";
+import { SecUser } from "../../user/entities/user.entity";
+import { SecProfile } from "../entities/profile.entity";
+
+
+export class CreateProfileDto {
+
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Id for profile creation' })
+    profileId: number;
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'Name for the profile' })
+    profileName: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating if a registry is actived' })
+    tagActive?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating if a registry is eliminated' })
+    tagDelete?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the user who created this record' })
+    createdBy?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the record created date' })
+    createdAt?: Date;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the last user who updated this record' })
+    updatedBy?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the record updated date' })
+    updatedAt?: Date;
+
+    users: SecUser[];
+
+
+    validateModel?(obj: SecProfile) {
+        let response = new ResponseGeneric();
+        let data = new SecProfile();
+
+        Object.assign(data, obj);
+
+        return new Promise((resolve, reject) => {
+
+            validate(data).then((errors) => {
+
+                if (errors.length > 0) {
+                    reject(Object.assign(response, { success: false, message: 'CAMPOS INCOMPLETOS', exception: errors }));
+                } else {
+                    resolve(errors);
+                }
+
+            }).catch((exception) => {
+                reject(Object.assign(response, { success: false, message: 'ERROR EN MODELO', exception }));
+            });
+
+        });
+
+    }
+}
+### Archivo: src/security/profile/dto/update-profile.dto.ts
+import { PartialType } from '@nestjs/swagger';
+import { CreateProfileDto } from './create-profile.dto';
+
+export class UpdateProfileDto extends PartialType(CreateProfileDto) {}
+
+### Archivo: src/security/user/dto/create-user.dto.ts
+
+
+import { ApiPropertyOptional, ApiProperty } from '@nestjs/swagger';
+import { IsOptional, IsNotEmpty, validate, IsEmail, IsEmpty, isNotEmpty } from 'class-validator';
+import { ResponseGeneric } from '../../../globals/reponse.class';
+import { SecUserProfile } from '../../../security/user_profile/entities/user_profile.entity';
+import { SecProfile } from '../../profile/entities/profile.entity';
+import { SecUser } from '../entities/user.entity';
+
+
+
+export class CreateUserDto {
+
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'Name for the user' })
+    username: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Password for the user' })
+    password: string;
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'First name for the user' })
+    firstName: string;
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'Last name for the user' })
+    lastName: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Mother last name for the user' })
+    motherLastName?: string;
+
+    @IsNotEmpty()
+    @IsEmail()
+    @ApiProperty({ description: 'Email for the user' })
+    email: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Photo for the user' })
+    photo?: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Date of entry of the user' })
+    entryDate?: Date;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Date of leave of the user' })
+    leaveDate?: Date;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Phone for the user' })
+    phone?: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Notes about the user' })
+    notes?: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Address for the user' })
+    address?: string;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Employee number for the user' })
+    employeeNumber?: string;
+
+    @IsOptional()
+    @ApiProperty({ description: 'Profiles for the user' })
+    profiles?: SecProfile[];
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating if a registry is blocked' })
+    tagBlocked?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating if a registry is actived' })
+    tagActive?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating if a registry is eliminated' })
+    tagDelete?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the user who created this record' })
+    createdBy?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the record created date' })
+    createdAt?: Date;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the last user who updated this record' })
+    updatedBy?: number;
+
+    @IsOptional()
+    @ApiPropertyOptional({ description: 'Property indicating the record updated date' })
+    updatedAt?: Date;
+
+    @IsNotEmpty()
+    @ApiProperty({ description: 'user Profiles' })
+    userProfiles?: SecUserProfile[];
+
+
+
+    validateModel?(obj: SecUser) {
+
+        let response = new ResponseGeneric();
+        let data = new SecUser();
+
+        Object.assign(data, obj);
+
+        return new Promise((resolve, reject) => {
+
+            validate(data).then((errors) => {
+
+                if (errors.length > 0) {
+                    reject(Object.assign(response, { success: false, message: 'CAMPOS INCOMPLETOS', exception: errors }));
+                } else {
+                    resolve(errors);
+                }
+
+            }).catch((exception) => {
+                reject(Object.assign(response, { success: false, message: 'ERROR EN MODELO', exception }));
+            });
+
+        });
+
+    }
+
+}
+### Archivo: src/security/user/dto/update-user.dto.ts
+import { PartialType } from '@nestjs/swagger';
+import { CreateUserDto } from './create-user.dto';
+
+export class UpdateUserDto extends PartialType(CreateUserDto) {}
+
+### Archivo: src/security/user_profile/dto/create-user_profile.dto.ts
+export class CreateUserProfileDto {}
+
+### Archivo: src/security/user_profile/dto/update-user_profile.dto.ts
+import { PartialType } from '@nestjs/swagger';
+import { CreateUserProfileDto } from './create-user_profile.dto';
+
+export class UpdateUserProfileDto extends PartialType(CreateUserProfileDto) {}
+
+
+## 6. Pipes y Guards:
+---------------------------------------------------------
+-- Pipes (*.pipe.ts):
+-- Guards (*.guard.ts):
+
+## 7. Middlewares y Filtros (ExceptionFilter, Logger, etc.):
+---------------------------------------------------------
+-- Middlewares (*.middleware.ts):
+-- Exception Filters (*.filter.ts):
+
