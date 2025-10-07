@@ -1,0 +1,47 @@
+#backup del yaml en orangepi, pues alla tengo un indice de servicios por filename
+services:
+  db:
+    image: linuxserver/mariadb:alpine
+    container_name: condototem-db
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: xxxx
+      MYSQL_DATABASE: xxxx
+      MYSQL_PASSWORD: xxxx
+      MYSQL_USER: xxxx
+      TZ: America/Mexico_City
+
+    ports:
+      - "3307:3306"
+    volumes:
+      - condototem-data:/var/lib/mysql
+
+  condovive-totem:
+    image: nest-condovivetotem-back:latest
+    container_name: condovive-totem
+    restart: unless-stopped
+    depends_on:
+      - db
+    privileged: true
+    ports:
+      - "3000:3000"
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      - adb_data:/root/.android
+    links:
+      - db
+    environment:
+      DB_TYPE: mysql
+      DB_HOST: db
+      DB_PORT: 3306
+      DB_USER: xxxx
+      DB_PASS: xxxx
+      DB_NAME: xxxx
+      DATABASE_SYNC: 0
+      JWT_SECRET: xxxx
+
+      APP_PORT: 3000
+
+volumes:
+  condototem-data:
+  adb_data:

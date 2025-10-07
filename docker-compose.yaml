@@ -1,0 +1,24 @@
+services:
+ condototem-svc:
+    image: nest-condovivetotem-back:latest
+    container_name: condovive-totem
+    restart: unless-stopped
+    privileged: true
+    volumes:
+      - /dev/bus/usb:/dev/bus/usb
+      #- adb_data:/root/.android #no lo quiere en windows necesario en orange
+    environment:
+      DB_TYPE: mysql
+      DB_HOST: 192.168.196.1
+      DB_PORT: 3307
+      DB_USER: xxxx
+      DB_PASS: xxxx
+      DB_NAME: condototem
+      DATABASE_SYNC: 1
+      JWT_SECRET: xxxx
+      
+      APP_PORT: 3000
+
+    ports:
+      - "3000:3000"
+    

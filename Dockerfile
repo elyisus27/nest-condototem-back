@@ -1,43 +1,27 @@
-#npm run build
-#docker build . -t jesus2787/nest-reservafrac:latest
-FROM node:18-slim
-# Instala dependencias del sistema necesarias para Chromium
-RUN apt-get update && apt-get install -y \
-  wget \
-  ca-certificates \
-  fonts-liberation \
-  libappindicator3-1 \
-  libasound2 \
-  libatk-bridge2.0-0 \
-  libatk1.0-0 \
-  libc6 \
-  libcairo2 \
-  libcups2 \
-  libdbus-1-3 \
-  libexpat1 \
-  libfontconfig1 \
-  libgbm1 \
-  libglib2.0-0 \
-  libgtk-3-0 \
-  libnspr4 \
-  libnss3 \
-  libpango-1.0-0 \
-  libx11-xcb1 \
-  libxcomposite1 \
-  libxdamage1 \
-  libxrandr2 \
-  xdg-utils \
-  --no-install-recommends && \
-  apt-get clean && rm -rf /var/lib/apt/lists/*
+#intercambiar segun plataforma x86 / armv7 para solo testear docker build, o seguir dockerfile.instructions
+FROM ubuntu:22.04 
+#FROM arm32v7/ubuntu:22.04
 
+RUN apt-get update && \
+    apt-get install -yq curl gnupg udev android-tools-adb usbutils && \
+    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
+    apt-get install -yq nodejs && \
+    apt-get autoremove -y && \
+    apt-get clean && \
+    rm -rf /var/lib/apt/lists/*
 
-RUN mkdir -p /usr/app/
-WORKDIR /usr/app/nest-reservafrac-backend
+RUN echo 'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/51-android.rules
 
-
-
-
-COPY . . 
+WORKDIR /usr/src/app
+COPY ./package.json ./package.json
 RUN npm install
-EXPOSE 2001
-CMD ["node","dist/main.js"]
+
+COPY start.sh ./
+COPY ./dist ./dist
+
+RUN chmod +x start.sh
+
+EXPOSE 3000
+
+# Set the entrypoint to the start script
+CMD ["./start.sh"]
