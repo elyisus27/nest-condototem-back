@@ -5,10 +5,10 @@ services:
     container_name: condototem-db
     restart: unless-stopped
     environment:
-      MYSQL_ROOT_PASSWORD: xxxx
-      MYSQL_DATABASE: xxxx
-      MYSQL_PASSWORD: xxxx
-      MYSQL_USER: xxxx
+      MYSQL_ROOT_PASSWORD: Fr4cCP455w0rd.2025
+      MYSQL_DATABASE: condototem
+      MYSQL_PASSWORD: Fr4cCP455w0rd
+      MYSQL_USER: reservauser
       TZ: America/Mexico_City
 
     ports:
@@ -34,11 +34,11 @@ services:
       DB_TYPE: mysql
       DB_HOST: db
       DB_PORT: 3306
-      DB_USER: xxxx
-      DB_PASS: xxxx
-      DB_NAME: xxxx
+      DB_USER: reservauser
+      DB_PASS: Fr4cCP455w0rd
+      DB_NAME: condototem
       DATABASE_SYNC: 0
-      JWT_SECRET: xxxx
+      JWT_SECRET: R3s3rv4
 
       APP_PORT: 3000
 

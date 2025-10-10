@@ -119,7 +119,6 @@ export class CondoviveService {
         this.logger.log('[STOP] Solicitud para detener todas las aplicaciones.');
         this.running = false; // Opcional: si quieres detener el bucle de automatización
         await this.adbService.forceStopAllApps();
-        this.logger.log('[STOP] Proceso de detención de apps finalizado.');
     }
 
     public async closeAllApps(): Promise<void> {

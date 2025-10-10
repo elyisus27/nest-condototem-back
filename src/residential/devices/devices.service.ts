@@ -1,8 +1,7 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-client.dto';
-import { Devices } from '../a.entities/devices.entity';
-import { DataSource, MoreThanOrEqual, Repository } from 'typeorm';
+import { Device } from '../a.entities/dev_device.entity';
+import { DataSource, In, MoreThanOrEqual, Repository } from 'typeorm';
 import { MessageDto } from '../../globals/message.dto';
 import { TableFiltersDto } from '../../globals/tableFilters.dto';
 import { InjectRepository } from '@nestjs/typeorm';
@@ -17,8 +16,8 @@ export class DevicesService {
   private activeDevices: { [serial: string]: CondoviveService } = {};
   constructor(
     private ds: DataSource,
-    @InjectRepository(Devices)
-    private devRepo: Repository<Devices>,
+    @InjectRepository(Device)
+    private devRepo: Repository<Device>,
 
   ) { }
 
@@ -28,11 +27,12 @@ export class DevicesService {
 
   //#region controller logic
   async findAll() {
-    const repoHouse = this.ds.getRepository<Devices>(Devices)
+    const repoHouse = this.ds.getRepository<Device>(Device)
     // const houses = await repoHouse.find();
 
     try {
-      const queryBuilder = repoHouse.createQueryBuilder('d')
+      const queryBuilder = repoHouse.createQueryBuilder('d').innerJoin('d.sequences','s')
+
       let houses = await queryBuilder.getMany();
       if (!houses) throw new NotFoundException(new MessageDto('lista vacía'))
       return houses
@@ -50,23 +50,25 @@ export class DevicesService {
       const SKIP = filters.limit * (filters.page - 1);
 
       const qb = this.devRepo.createQueryBuilder('q')
+        .leftJoinAndSelect('q.sequences', 's')
+        .leftJoinAndSelect('s.steps', 'st')
         //.select('q.deviceId')
         .skip(SKIP)
         .take(filters.limit)
-      //   .where(
-      //     [{
-      //       //loadingDate: Between(filters.start, filters.end), //and
-      //       tagActive: MoreThanOrEqual(tagActivefilter),//and
-      //       //comments: Like(`%${filters.searchtxt}%`) ,//and
-      //     },//or
-      //     {
-      //       //loadingDate: Between(filters.start, filters.end),
-      //       tagActive: MoreThanOrEqual(tagActivefilter),
-      //       //clientName: Like(`%${filters.searchtxt}%`),
+        .where(
+          [{
+            //loadingDate: Between(filters.start, filters.end), //and
+            tagActive: MoreThanOrEqual(tagActivefilter),//and
+            //comments: Like(`%${filters.searchtxt}%`) ,//and
+          },//or
+          {
+            //loadingDate: Between(filters.start, filters.end),
+            tagActive: MoreThanOrEqual(tagActivefilter),
+            //clientName: Like(`%${filters.searchtxt}%`),
 
-      //     },
-      //     ],
-      //   )
+          },
+          ],
+        )
 
 
 
@@ -82,6 +84,16 @@ export class DevicesService {
 
 
   }
+
+  async save(device: CreateDeviceDto) {
+    let saved = await this.devRepo.save(device)
+  }
+
+  async remove(id) {
+    let data = await this.devRepo.findBy({ deviceId: In([+id]) })
+    await this.devRepo.delete(+id)
+  }
+
 
 
 
@@ -151,7 +163,7 @@ export class DevicesService {
   //#region Adb Logic and Buisness Logic
   public async initializeServices() {
     this.logger.log('Cargando dispositivos de la base de datos...');
-    const devices = await this.devRepo.find({ where: { tagActive: 1 }, });
+    const devices = await this.devRepo.find({ where: { tagActive: 1, tagDelete: 0 }, });
 
     if (devices.length === 0) {
       this.logger.warn('No se encontraron dispositivos en la base de datos.');

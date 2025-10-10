@@ -1,5 +1,5 @@
 #npm run build
-#docker build . -t nest-condovivetotem-back:latest --no-cache
+#docker build . -t jesus2787/nest-condovivetotem-back:latest --no-cache
 
 #Testearlo
 docker compose up -d

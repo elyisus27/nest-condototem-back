@@ -1,7 +1,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
-import { Devices } from '../a.entities/devices.entity';
+import { Device } from '../a.entities/dev_device.entity';
 
 type CameraState = 'expired' | 'valid' | 'unknown';
 
@@ -13,7 +13,7 @@ export class AdbService {
   private logProcess: any;
   public readonly cameraEvent = new EventEmitter();
 
-  constructor(device: Devices) {
+  constructor(device: Device) {
     this.deviceSerial = device.adbDevice;
     this.logger = new Logger(`AdbService - ${this.deviceSerial}`);
   }

@@ -1,13 +1,13 @@
 import { Module } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { DevicesController } from './devices.controller';
-import { Devices } from '../a.entities/devices.entity';
+import { Device } from '../a.entities/dev_device.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { CondoviveService } from './condovive.service';
 import { AdbService } from './adb.service';
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Devices])],
+  imports: [TypeOrmModule.forFeature([Device])],
   controllers: [DevicesController],
   providers: [DevicesService],
   exports:[DevicesService]

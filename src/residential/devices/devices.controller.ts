@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
-import { UpdateDeviceDto } from './dto/update-client.dto';
 import { TableFiltersDto } from '../../globals/tableFilters.dto';
 import { ResponseGeneric } from '../../globals/reponse.class';
 
@@ -88,7 +87,7 @@ export class DevicesController {
   @Get('screenshot/:adbSerial')
   async getScreenshot(@Param('adbSerial') adbSerial: string): Promise<any> {
     try {
-      this.logger.log(`Solicitando captura de pantalla para el dispositivo: ${adbSerial}`);
+      
       const screenshotData = await this.deviceService.getDeviceScreenshot(adbSerial);
       if (!screenshotData) {
         throw new NotFoundException(`No se encontró un servicio para el dispositivo: ${adbSerial}`);
@@ -105,13 +104,13 @@ export class DevicesController {
   //   return this.deviceService.findOne(+id);
   // }
 
-  // @Patch(':id')
-  // update(@Param('id') id: string, @Body() updateClientDto: UpdateClientDto) {
-  //   return this.deviceService.update(+id, updateClientDto);
-  // }
+  @Post('save')
+  addOrUpdate(@Body() updateClientDto: CreateDeviceDto) {
+    return this.deviceService.save(updateClientDto);
+  }
 
-  // @Delete(':id')
-  // remove(@Param('id') id: string) {
-  //   return this.deviceService.remove(+id);
-  // }
+  @Delete(':id')
+  remove(@Param('id') id: string) {
+    return this.deviceService.remove(+id);
+  }
 }

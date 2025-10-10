@@ -1,9 +1,10 @@
 
-import { Column, CreateDateColumn, Entity, JoinColumn, ManyToOne, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Column, CreateDateColumn, Entity, JoinColumn, JoinTable, ManyToOne, OneToMany, PrimaryGeneratedColumn, UpdateDateColumn } from "typeorm";
+import { Sequence } from "./dev_sequence.entity";
 
 
-@Entity('devices')
-export class Devices {
+@Entity('dev_device')
+export class Device {
 
     @PrimaryGeneratedColumn('increment', { name: 'device_id', comment: 'Identificador unico de la tabla' })
     deviceId: number;
@@ -17,7 +18,11 @@ export class Devices {
     @Column({ name: 'adb_device', type: 'varchar', length: 20, comment: 'adb device name' })
     adbDevice: string;
 
-     @Column({ name: 'tag_active', type: 'tinyint', width: 1, comment: 'Property indicating if a registry is actived', default: 1 })
+    @JoinTable()
+    @OneToMany(() => Sequence, seq => seq.device, { cascade: true, eager:true})
+    sequences?: Sequence[];
+
+    @Column({ name: 'tag_active', type: 'tinyint', width: 1, comment: 'Property indicating if a registry is actived', default: 1 })
     tagActive?: number;
 
     @Column({ name: 'tag_delete', type: 'tinyint', width: 1, comment: 'Property indicating if a registry is eliminated', default: 0 })
