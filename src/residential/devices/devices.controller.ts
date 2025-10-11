@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException, HttpCode, InternalServerErrorException } from '@nestjs/common';
 import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { TableFiltersDto } from '../../globals/tableFilters.dto';
@@ -104,10 +104,34 @@ export class DevicesController {
   //   return this.deviceService.findOne(+id);
   // }
 
+  @Post('reload-automation/:deviceId')
+  @HttpCode(200) // Generalmente un POST para acciones de este tipo
+  async reloadAutomation(@Param('deviceId') deviceId: string) {
+    try {
+      await this.deviceService.reloadDeviceService(+deviceId);
+      return { 
+        success: true, 
+        message: `Automatización para el dispositivo ${deviceId} recargada e iniciada con la nueva configuración.`
+      };
+    } catch (error) {
+      if (error instanceof NotFoundException) {
+        throw error; 
+      }
+      // Loggear o manejar otros errores, como problemas de DB o ADB.
+      throw new InternalServerErrorException({
+        success: false,
+        message: 'Fallo al recargar la automatización.',
+        error: error.message,
+      });
+    }
+  }
+
   @Post('save')
   addOrUpdate(@Body() updateClientDto: CreateDeviceDto) {
     return this.deviceService.save(updateClientDto);
   }
+
+  
 
   @Delete(':id')
   remove(@Param('id') id: string) {

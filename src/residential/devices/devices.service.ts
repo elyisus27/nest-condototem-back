@@ -31,7 +31,7 @@ export class DevicesService {
     // const houses = await repoHouse.find();
 
     try {
-      const queryBuilder = repoHouse.createQueryBuilder('d').innerJoin('d.sequences','s')
+      const queryBuilder = repoHouse.createQueryBuilder('d').innerJoin('d.sequences', 's')
 
       let houses = await queryBuilder.getMany();
       if (!houses) throw new NotFoundException(new MessageDto('lista vacía'))
@@ -163,7 +163,11 @@ export class DevicesService {
   //#region Adb Logic and Buisness Logic
   public async initializeServices() {
     this.logger.log('Cargando dispositivos de la base de datos...');
-    const devices = await this.devRepo.find({ where: { tagActive: 1, tagDelete: 0 }, });
+    // 🚨 MODIFICACIÓN CLAVE: Cargar las relaciones `sequences` y `steps`
+    const devices = await this.devRepo.find({
+      where: { tagActive: 1, tagDelete: 0 },
+      relations: ['sequences', 'sequences.steps'] // Asegúrate de que los nombres coincidan con tus relaciones de entidad
+    });
 
     if (devices.length === 0) {
       this.logger.warn('No se encontraron dispositivos en la base de datos.');
@@ -174,7 +178,8 @@ export class DevicesService {
     for (const device of devices) {
       this.logger.log(`Inicializando servicio para el dispositivo: ${device.adbDevice},. ${device.deviceName}`);
       const adbService = new AdbService(device); // Instancia del servicio ADB
-      const condoviveService = new CondoviveService(adbService); // Servicio de la lógica de negocio
+      // 🚨 MODIFICACIÓN CLAVE: Pasamos el objeto Device completo al CondoviveService
+      const condoviveService = new CondoviveService(adbService, device); // Servicio de la lógica de negocio
       this.activeDevices[device.adbDevice] = condoviveService;
     }
 
@@ -188,5 +193,58 @@ export class DevicesService {
   public getAllServices(): CondoviveService[] {
     return Object.values(this.activeDevices);
   }
+
+  // devices.service.ts (fragmento)
+// Asegúrate de importar las entidades y decoradores necesarios.
+
+// ...
+
+public async reloadDeviceService(deviceId: number): Promise<void> {
+    this.logger.log(`Recargando servicio para deviceId: ${deviceId}...`);
+
+    // 1. Buscar el dispositivo actualizado en la DB con todas las relaciones
+    const device = await this.devRepo.findOne({
+        where: { deviceId, tagActive: 1, tagDelete: 0 },
+        relations: ['sequences', 'sequences.steps'] 
+    });
+
+    if (!device) {
+        this.logger.error(`Dispositivo ${deviceId} no encontrado o inactivo.`);
+        throw new NotFoundException(`Dispositivo con ID ${deviceId} no encontrado o inactivo.`);
+    }
+    
+    // 2. Obtener el serial del dispositivo
+    const adbSerial = device.adbDevice;
+
+    // 3. Detener el servicio activo actual (para asegurar un reinicio limpio)
+    const oldService = this.activeDevices[adbSerial];
+    if (oldService) {
+        this.logger.log(`Deteniendo bucle de automatización anterior para ${adbSerial}.`);
+         oldService.stop(); // Establece running = false y sale del bucle 'while'
+         oldService.stopListening();
+        // Opcional: espera un breve momento o implementa una espera más sofisticada 
+        // para asegurarte que el bucle se detuvo.
+        await new Promise(resolve => setTimeout(resolve, 500)); 
+    }
+
+    // 4. Crear nuevas instancias de los servicios (AdbService y CondoviveService)
+    this.logger.log(`Creando nuevas instancias de AdbService y CondoviveService para ${adbSerial}.`);
+    const newAdbService = new AdbService(device);
+    const newCondoviveService = new CondoviveService(newAdbService, device);
+
+    // 5. Reemplazar la instancia antigua por la nueva
+    this.activeDevices[adbSerial] = newCondoviveService;
+    this.logger.log(`Servicio para ${adbSerial} actualizado en activeDevices.`);
+
+    // 6. Reiniciar el bucle de automatización con la nueva configuración (asíncronamente)
+    this.logger.log(`Iniciando nuevo bucle de automatización para ${adbSerial}.`);
+    newCondoviveService.runAutomationLoop().catch(error => {
+        this.logger.error(`Error en el bucle de automatización de ${adbSerial}: ${error.message}`);
+    });
+
+    this.logger.log(`✅ Dispositivo ${deviceId} recargado y reiniciado exitosamente.`);
+}
+
+// ...
   //#endregion
 }

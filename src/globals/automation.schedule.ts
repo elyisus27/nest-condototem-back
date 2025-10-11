@@ -10,7 +10,7 @@ export class AutomationSchedule {
 
   constructor(private readonly devicesService: DevicesService) {}
 
-  //@Timeout(3000) // 10 segundos para dar tiempo a que todo cargue
+  @Timeout(3000) // 10 segundos para dar tiempo a que todo cargue
   async startAutomation() {
        
     await this.devicesService.initializeServices();

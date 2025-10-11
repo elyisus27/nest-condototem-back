@@ -75,6 +75,20 @@ export class AdbService {
     }
   };
 
+  public stopListening(): void {
+    if (this.logProcess) {
+      this.logger.log('[LOGCAT] Deteniendo el proceso listener...');
+
+      // 🚨 IMPORTANTE: Eliminar el listener antes de matar el proceso
+      this.logProcess.stdout.off('data', this.logcatDataHandler);
+
+      // Matar el proceso hijo de forma segura
+      this.logProcess.kill();
+      this.logProcess = null;
+      this.logger.log('[LOGCAT] Proceso listener detenido.');
+    }
+  }
+
   /** Métodos privados para manejar los comandos de ADB */
   public runAdb(args: string[]): Promise<void> {
     return new Promise((resolve, reject) => {
@@ -183,7 +197,7 @@ export class AdbService {
   public async closeAllApps(): Promise<void> {
     await this.runAdb(['shell', 'input', 'keyevent', '187']);
     await this.delay(1000)
-    await this.tap(360,1300)
+    await this.tap(360, 1300)
 
   }
 
