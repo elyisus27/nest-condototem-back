@@ -1,18 +1,14 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException, HttpCode, InternalServerErrorException } from '@nestjs/common';
-import { DevicesService } from './devices.service';
+import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException, HttpCode, InternalServerErrorException, HttpException, HttpStatus } from '@nestjs/common';
+
 import { CreateDeviceDto } from './dto/create-device.dto';
 import { TableFiltersDto } from '../../globals/tableFilters.dto';
 import { ResponseGeneric } from '../../globals/reponse.class';
+import { DevicesService } from './application/devices.service';
 
 @Controller('devices')
 export class DevicesController {
   private readonly logger = new Logger(DevicesController.name);
   constructor(private readonly deviceService: DevicesService) { }
-
-  @Post()
-  create(@Body() createClientDto: CreateDeviceDto) {
-    return this.deviceService.create(createClientDto);
-  }
 
   @Get()
   findAll() {
@@ -39,55 +35,46 @@ export class DevicesController {
     return this.deviceService.listPaginated(filters)
   }
 
-  @Get('run-condovive/:adbSerial')
-  runCondovive(@Param('adbSerial') adbSerial: string): Promise<ResponseGeneric> {
-    return this.deviceService.runCondovive(adbSerial);
-  }
-
-  @Get('stop-condovive')
-  stopCondovive(): Promise<ResponseGeneric> {
-    return this.deviceService.stopCondovive();
-  }
-
-  @Get('force-stop/:adbSerial')
-  async forceStopApp(@Param('adbSerial') adbSerial: string): Promise<any> {
+  @Post('close-all-apps/:adbSerial')
+  async closeAllApps(@Param('adbSerial') adbSerial: string) {
+    this.logger.log(`Request to close all apps on device ${adbSerial}`);
     try {
-      this.logger.log(`Solicitando detener la app en el dispositivo: ${adbSerial}`);
-      await this.deviceService.forceStopApp(adbSerial);
-      return { success: true, message: 'La aplicación ha sido detenida.' };
-    } catch (error) {
-      this.logger.error(`Error al detener la app en ${adbSerial}: ${error.message}`);
-      return { success: false, message: error.message };
-    }
-  }
-
-  @Get('force-stop-all/:adbSerial')
-  async forceStopAllApps(@Param('adbSerial') adbSerial: string): Promise<any> {
-    try {
-      this.logger.log(`Solicitando detener todas las apps en el dispositivo: ${adbSerial}`);
-      await this.deviceService.forceStopAllApps(adbSerial);
-      return { success: true, message: 'Se ha iniciado el proceso para detener todas las aplicaciones.' };
-    } catch (error) {
-      this.logger.error(`Error al detener todas las apps en ${adbSerial}: ${error.message}`);
-      return { success: false, message: error.message };
-    }
-  }
-
-  @Get('close-all-apps/:adbSerial')
-  async closeAllApps(@Param('adbSerial') adbSerial: string): Promise<any> {
-    try {
-      
       await this.deviceService.closeAllApps(adbSerial);
-      return { success: true, message: 'El proceso de cierre de aplicaciones ha sido iniciado.' };
+      return { success: true, message: `All apps closed on device ${adbSerial}` };
     } catch (error) {
-      return { success: false, message: error.message };
+      this.logger.error(`Failed to close apps on ${adbSerial}: ${error.message}`);
+      throw new HttpException(
+        { success: false, message: error.message },
+        HttpStatus.INTERNAL_SERVER_ERROR,
+      );
     }
+  }
+
+  @Post('/restart-services/:adbSerial')
+  async restartServices(@Param('adbSerial') adbSerial: string) {
+    this.logger.log(`Request to restart services on device ${adbSerial}`);
+    await this.deviceService.restartServices(adbSerial);
+    return { success: true, message: `Services restarted on device ${adbSerial}` };
+  }
+
+  @Post('/stop-services/:adbSerial')
+  async stopServices(@Param('adbSerial') adbSerial: string) {
+    this.logger.log(`Request to stop services on device ${adbSerial}`);
+    await this.deviceService.stopServices(adbSerial);
+    return { success: true, message: `Services stopped on device ${adbSerial}` };
+  }
+
+  @Post('start-services/:adbSerial/')
+  async startServices(@Param('adbSerial') adbSerial: string) {
+    this.logger.log(`Request to start services on device ${adbSerial}`);
+    await this.deviceService.startServices(adbSerial);
+    return { success: true, message: `Services started on device ${adbSerial}` };
   }
 
   @Get('screenshot/:adbSerial')
   async getScreenshot(@Param('adbSerial') adbSerial: string): Promise<any> {
     try {
-      
+
       const screenshotData = await this.deviceService.getDeviceScreenshot(adbSerial);
       if (!screenshotData) {
         throw new NotFoundException(`No se encontró un servicio para el dispositivo: ${adbSerial}`);
@@ -99,39 +86,11 @@ export class DevicesController {
     }
   }
 
-  // @Get(':id')
-  // findOne(@Param('id') id: string) {
-  //   return this.deviceService.findOne(+id);
-  // }
-
-  @Post('reload-automation/:deviceId')
-  @HttpCode(200) // Generalmente un POST para acciones de este tipo
-  async reloadAutomation(@Param('deviceId') deviceId: string) {
-    try {
-      await this.deviceService.reloadDeviceService(+deviceId);
-      return { 
-        success: true, 
-        message: `Automatización para el dispositivo ${deviceId} recargada e iniciada con la nueva configuración.`
-      };
-    } catch (error) {
-      if (error instanceof NotFoundException) {
-        throw error; 
-      }
-      // Loggear o manejar otros errores, como problemas de DB o ADB.
-      throw new InternalServerErrorException({
-        success: false,
-        message: 'Fallo al recargar la automatización.',
-        error: error.message,
-      });
-    }
-  }
 
   @Post('save')
   addOrUpdate(@Body() updateClientDto: CreateDeviceDto) {
     return this.deviceService.save(updateClientDto);
   }
-
-  
 
   @Delete(':id')
   remove(@Param('id') id: string) {

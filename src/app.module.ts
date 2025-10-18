@@ -12,7 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './security/auth/auth.module';
 
 import { DevicesModule } from './residential/devices/devices.module';
-import { AutomationSchedule } from './globals/automation.schedule';
+import { AutomationSchedule } from './residential/devices/automation/automation.schedule';
 
 
 
@@ -51,6 +51,6 @@ import { AutomationSchedule } from './globals/automation.schedule';
 
   ],
   controllers: [AppController],
-  providers: [AppService, MySQLInsertTablesService, AutomationSchedule],
+  providers: [AppService, MySQLInsertTablesService, ],
 })
 export class AppModule { }

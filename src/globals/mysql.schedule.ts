@@ -123,154 +123,121 @@ export class MySQLInsertTablesService {
         this.handleCreateDevices();
     }
 
-    // async handleCreateDevices() {
 
-    //     const repo = this.ds.getRepository<Devices>(Devices)
-    //     const data = await repo.find();
-
-    //     if (data.length == 0 || this.config.get('DATABASE_SYNC') == '2') {
-
-    //         try {
-
-    //             const repo = this.ds.getRepository<Devices>(Devices)
-
-    //             const dtos: CreateDeviceDto[] = [
-    //                 {
-    //                     deviceName: "Puerta Peatonal 1",
-    //                     description: "Puerta Peatonal 1",
-    //                     adbDevice: "NO ASIGNADO",
-    //                     deviceId: null
-    //                 }, {
-    //                     deviceName: "Puerta Peatonal 2",
-    //                     description: "Puerta Peatonal 2",
-    //                     adbDevice: "NO ASIGNADO",
-    //                     deviceId: null
-    //                 }, {
-    //                     deviceName: "Puerta Vehicular entrada",
-    //                     description: "Puerta Vehicular entrada",
-    //                     adbDevice: "NO ASIGNADO",
-    //                     deviceId: null
-    //                 }, {
-    //                     deviceName: "Puerta Vehicular salida",
-    //                     description: "Puerta Vehicular salida",
-    //                     adbDevice: "NO ASIGNADO",
-    //                     deviceId: null
-    //                 },
-
-
-    //             ]
-    //             const saved = repo.save(dtos)
-    //             this.logger.log('Generación de data correcta [Devices]');
-
-    //         } catch (err) {
-
-    //         }
-    //     }
-    // }
-
-    // --- Función de Seeding Refactorizada ---
     async handleCreateDevices(): Promise<void> {
         const repoDevices = this.ds.getRepository(Device);
         const data = await repoDevices.find();
 
         // Controla si ya hay datos o si se fuerza la sincronización
-        if (data.length > 0 && this.config.get('DATABASE_SYNC') !== '2') {
-            this.logger.log('Los datos iniciales para Devices ya existen. Omitiendo seeding.');
-            return;
-        }
+        if (data.length == 0 || this.config.get('DATABASE_SYNC') == '2') {
+            // Inicia una transacción para asegurar la consistencia
+            const queryRunner = this.ds.createQueryRunner();
+            await queryRunner.connect();
+            await queryRunner.startTransaction();
 
-        // Inicia una transacción para asegurar la consistencia
-        const queryRunner = this.ds.createQueryRunner();
-        await queryRunner.connect();
-        await queryRunner.startTransaction();
-
-        try {
-            // 1. Definir los datos de los Devices (Entidad principal)
-            const deviceData = [
-                //{ deviceName: "Puerta Peatonal 1", description: "Puerta Peatonal 1", adbDevice: "R9PTA0D99SN" },
-                //{ deviceName: "Puerta Peatonal 2", description: "Puerta Peatonal 2", adbDevice: "NO ASIGNADO" },
-                { deviceName: "Puerta Vehicular entrada", description: "Puerta Vehicular entrada", adbDevice: "R9PTA0D99SN" },
-                //{ deviceName: "Puerta Vehicular salida", description: "Puerta Vehicular salida", adbDevice: "NO ASIGNADO" },
-            ];
-
-            // 2. Guardar los Devices
-            const savedDevices = await queryRunner.manager.save(Device, deviceData);
-            this.logger.log(`Se han creado ${savedDevices.length} Devices.`);
-
-            // 3. Crear las Secuencias y Steps para cada Device
-            const sequencesToSave: Sequence[] = [];
-
-            //let sequenceIdCounter = 1; // Para un control manual si es necesario, aunque TypeORM lo maneja
-
-            for (const device of savedDevices) {
-                // Secuencia GoToCamera para el Device
-                const goToCameraSteps = [
-                    queryRunner.manager.create(SequenceStep, { order: 1, type: 1, x1: 60, y1: 110, delay: 3000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 110, y1: 940, delay: 3000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 200, y1: 350, delay: 3000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 360, y1: 290, delay: 5000 }),
+            try {
+                // 1. Definir los datos de los Devices (Entidad principal)
+                const deviceData = [
+                    //{ deviceName: "Puerta Peatonal 1", description: "Puerta Peatonal 1", adbDevice: "R9PTA0D99SN" },
+                    //{ deviceName: "Puerta Peatonal 2", description: "Puerta Peatonal 2", adbDevice: "NO ASIGNADO" },
+                    { deviceName: "Puerta Vehicular entrada", description: "Puerta Vehicular entrada", adbDevice: "R9PTA0D99SN" },
+                    //{ deviceName: "Puerta Vehicular salida", description: "Puerta Vehicular salida", adbDevice: "NO ASIGNADO" },
                 ];
 
-                const goToCameraSeq = queryRunner.manager.create(Sequence, {
-                    name: 'GoToCamera',
-                    device: device,
-                    steps: goToCameraSteps
-                });
+                // 2. Guardar los Devices
+                const savedDevices = await queryRunner.manager.save(Device, deviceData);
+
+                this.logger.log(`Generación de data correcta [Device]. ${savedDevices.length} Devices.`);
 
 
-                // Secuencia Aceptar para el Device
-                const AcceptSteps = [
-                    queryRunner.manager.create(SequenceStep, { order: 1, type: 2, x1: 300, y1: 650, x2: 300, y2: 0, swapTime: 100, delay: 1000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 530, y1: 1430, delay: 3000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 375, y1: 1015, delay: 2000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 0 }),
-                ];
-                const acceptSeq = queryRunner.manager.create(Sequence, {
-                    name: 'Aceptar Visita',
-                    device: device,
-                    steps: AcceptSteps,
-                });
+                // 3. Crear las Secuencias y Steps para cada Device
+                const sequencesToSave: Sequence[] = [];
 
-                // Secuencia Denegar para el Device
-                const DenegateSteps = [
-                    queryRunner.manager.create(SequenceStep, { order: 1, type: 1, x1: 360, y1: 825, delay: 1000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 2, type: 2, x1: 300, y1: 650, x2: 300, y2: 0, swapTime: 100, delay: 1000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 190, y1: 1430, delay: 1000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 520, y1: 1025, delay: 3000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 350, y1: 1020, delay: 2000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                    queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 360, y1: 290, delay: 0 }),
-                ];
-                const denySeq = queryRunner.manager.create(Sequence, {
-                    name: 'Denegar Visita',
-                    device: device,
-                    steps: DenegateSteps,
-                });
+                //let sequenceIdCounter = 1; // Para un control manual si es necesario, aunque TypeORM lo maneja
 
-                sequencesToSave.push(goToCameraSeq, acceptSeq, denySeq);
+                for (const device of savedDevices) {
+                    // Secuencia GoToCamera para el Device
+                    const goToCameraSteps = [
+                        queryRunner.manager.create(SequenceStep, { order: 1, type: 1, x1: 60, y1: 110, delay: 3000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 110, y1: 940, delay: 3000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 200, y1: 350, delay: 3000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 360, y1: 290, delay: 5000 }),
+                    ];
 
+                    const goToCameraSeq = queryRunner.manager.create(Sequence, {
+                        name: 'GoToCamera',
+                        device: device,
+                        steps: goToCameraSteps
+                    });
+
+
+                    // Secuencia Aceptar para el Device
+                    const AcceptSteps = [
+                        queryRunner.manager.create(SequenceStep, { order: 1, type: 2, x1: 300, y1: 650, x2: 300, y2: 0, swapTime: 100, delay: 1000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 530, y1: 1430, delay: 3000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 375, y1: 1015, delay: 2000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 200, y1: 350, delay: 2000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 0 }),
+                    ];
+                    const acceptSeq = queryRunner.manager.create(Sequence, {
+                        name: 'Aceptar Visita',
+                        device: device,
+                        steps: AcceptSteps,
+                    });
+
+                    // Secuencia Denegar para el Device
+                    const DenegateSteps = [
+                        queryRunner.manager.create(SequenceStep, { order: 1, type: 1, x1: 360, y1: 825, delay: 1000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 2, type: 2, x1: 300, y1: 650, x2: 300, y2: 0, swapTime: 100, delay: 1000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 190, y1: 1430, delay: 1000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 520, y1: 1025, delay: 3000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 350, y1: 1020, delay: 2000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 360, y1: 290, delay: 0 }),
+                    ];
+                    const denySeq = queryRunner.manager.create(Sequence, {
+                        name: 'Denegar Visita',
+                        device: device,
+                        steps: DenegateSteps,
+                    });
+
+                    // Secuencia CloseAllApps para el Device
+                    const CloseAllSteps = [
+                        queryRunner.manager.create(SequenceStep, { order: 1, type: 1, x1: 360, y1: 1300, delay: 1000 }),
+
+                    ];
+                    const closeAllSeq = queryRunner.manager.create(Sequence, {
+                        name: 'CloseAllApps',
+                        device: device,
+                        steps: CloseAllSteps,
+                    });
+
+                    sequencesToSave.push(goToCameraSeq, acceptSeq, denySeq, closeAllSeq);
+
+                }
+
+                // 4. Guardar las Sequences y SequenceSteps
+                const savedSequences = await queryRunner.manager.save(Sequence, sequencesToSave);
+
+                this.logger.log(`Generación de data correcta [Sequence][Steps]. ${savedSequences.length} Seq.`);
+                // 5. Confirma la transacción
+                await queryRunner.commitTransaction();
+
+
+            } catch (err) {
+                // Si algo falla, revierte todos los cambios
+                await queryRunner.rollbackTransaction();
+                this.logger.error('Error al generar data inicial:', err.message);
+                // Puedes relanzar el error si es crítico para la inicialización
+                // throw err; 
+            } finally {
+                // Libera el query runner
+                await queryRunner.release();
             }
-
-            // 4. Guardar las Sequences y SequenceSteps
-            const savedSequences = await queryRunner.manager.save(Sequence, sequencesToSave);
-            this.logger.log(`Se han creado ${savedSequences.length} Sequences y sus Steps asociados.`);
-
-            // 5. Confirma la transacción
-            await queryRunner.commitTransaction();
-            this.logger.log('Generación de data inicial correcta [Devices, Sequences, Steps]');
-
-        } catch (err) {
-            // Si algo falla, revierte todos los cambios
-            await queryRunner.rollbackTransaction();
-            this.logger.error('Error al generar data inicial:', err.message);
-            // Puedes relanzar el error si es crítico para la inicialización
-            // throw err; 
-        } finally {
-            // Libera el query runner
-            await queryRunner.release();
         }
+
+
     }
 
 
