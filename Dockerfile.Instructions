@@ -9,7 +9,7 @@ docker compose up -d
 #Activa el builder multiplataforma:
 docker buildx create --use
 #Luego construye para ARMv7 (como tu Orange Pi):
-docker buildx build --platform linux/arm/v7 -t nest-condovivetotem-back:latest .
+docker buildx build --platform linux/arm/v7 -t jesus2787/nest-condovivetotem-back:latest .
 #Si quieres probarlo en tu máquina sin subirlo a Docker Hub, agrégale --load:
 docker buildx build --platform linux/arm/v7 -t nest-condovivetotem-back:latest --load .
 docker images
@@ -17,6 +17,7 @@ docker save nest-condovivetotem-back:latest -o nest-condovivetotem-back.tar
 docker load -i nest-condovivetotem-back.tar
 #exportar directo a .tar
 docker buildx build --platform linux/arm/v7 -t nest-condovivetotem-back:latest --output type=docker,dest=nest-condovivetotem-back.tar .
+#subir directo a docker hub
+docker buildx build --platform linux/arm/v7 -t jesus2787/nest-condovivetotem-back:latest --push .
 
 
-#El problema es que el nuevo backend, pesa 1.4GB dockerizado, y en teoria el original estaba muy ligero. ¿que librerias no necesit ? 
