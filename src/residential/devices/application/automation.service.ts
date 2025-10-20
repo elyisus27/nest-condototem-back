@@ -6,6 +6,7 @@ import { AutomationFactory } from '../automation/automation.factory';
 import { AdbService } from './adb.service';
 import { SequenceExecutorService } from '../automation/sequence-executore.service';
 import { CondoviveService } from '../automation/condovive.service';
+import { GpioService } from './gpio.service';
 
 @Injectable()
 export class AutomationService {
@@ -17,6 +18,7 @@ export class AutomationService {
     private readonly adbService: AdbService,
     private readonly factory: AutomationFactory,
     private readonly executor: SequenceExecutorService,
+    private readonly gpioService: GpioService
   ) {}
 
   // async initializeServices() {
@@ -75,7 +77,7 @@ export class AutomationService {
 
     for (const device of devices) {
       const adbInstance = this.adbService.createInstance(device);
-      const condovive = this.factory.createCondoviveService(adbInstance, device);
+      const condovive = this.factory.createCondoviveService(adbInstance, device, this.gpioService);
       this.activeDevices[device.adbDevice] = condovive;
       this.devicesService.registerService(device.adbDevice, condovive);
       await condovive.initApp();

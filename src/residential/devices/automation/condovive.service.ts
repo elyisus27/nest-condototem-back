@@ -3,13 +3,18 @@ import { Logger } from '@nestjs/common';
 import { AdbInstance } from '../application/adb.service';
 import { Device } from '../../a.entities/dev_device.entity';
 import { SequenceExecutorService } from './sequence-executore.service';
+import { GpioService } from '../application/gpio.service';
 
 export class CondoviveService {
   private readonly logger = new Logger(CondoviveService.name);
   private running = false;
 
 
-  constructor(private device: Device, private adb: AdbInstance,) {
+  constructor(
+    private device: Device,
+    private adb: AdbInstance,
+    private readonly gpioService: GpioService,
+  ) {
     this.logger = new Logger(`${CondoviveService.name} - ${this.device.adbDevice}`);
   }
 
@@ -60,15 +65,22 @@ export class CondoviveService {
       this.logger.log(`[LOOP] ${this.device.deviceName} event ${state}`);
 
       // Ejecuta la secuencia correspondiente (si hay)
+      if (state === 'aceptar visita' && this.device.gpioPin) {
+        this.logger.log(`Abriendo compuerta GPIO ${this.device.gpioPin}`);
+        await this.gpioService.pulse(this.device.gpioPin);
+      } 
+      //else { await this.gpioService.pulse(this.device.gpioPin); }
+
       if (seqExecutor && this.device.sequences && this.device.sequences.length > 0) {
 
         const sequence = this.device.sequences.find(s => s.name.toLowerCase().includes(state));
-        const gotocamSeq = this.device.sequences.find(s => s.name.toLowerCase().includes("gotocamera"));
+        //const gotocamSeq = this.device.sequences.find(s => s.name.toLowerCase().includes("gotocamera"));
         if (sequence) {
           await seqExecutor.executeSequence(sequence as any, this.adb);
-          await seqExecutor.executeSequence(gotocamSeq as any, this.adb);
+          //await seqExecutor.executeSequence(gotocamSeq as any, this.adb);
         }
       }
+
 
       await this.adb.delay(2000);
       if (!this.running) break;
@@ -89,7 +101,7 @@ export class CondoviveService {
     //this.running = false;
     if (seqExecutor && this.device.sequences && this.device.sequences.length > 0) {
       const sequence = this.device.sequences.find(s => s.name.toLowerCase().includes('closeallapps'));
-      
+
       if (sequence) {
         await this.adb.runAdb(['shell', 'input', 'keyevent', '187']);
         await this.adb.delay(1000);

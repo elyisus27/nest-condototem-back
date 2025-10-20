@@ -177,7 +177,7 @@ export class MySQLInsertTablesService {
                         queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 530, y1: 1430, delay: 3000 }),
                         queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 375, y1: 1015, delay: 2000 }),
                         queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 0 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 365, y1: 280, delay: 2000 }),
                     ];
                     const acceptSeq = queryRunner.manager.create(Sequence, {
                         name: 'Aceptar Visita',
@@ -192,9 +192,7 @@ export class MySQLInsertTablesService {
                         queryRunner.manager.create(SequenceStep, { order: 2, type: 1, x1: 190, y1: 1430, delay: 1000 }),
                         queryRunner.manager.create(SequenceStep, { order: 3, type: 1, x1: 520, y1: 1025, delay: 3000 }),
                         queryRunner.manager.create(SequenceStep, { order: 4, type: 1, x1: 350, y1: 1020, delay: 2000 }),
-                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 200, y1: 350, delay: 2000 }),
-                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 360, y1: 290, delay: 0 }),
+                        queryRunner.manager.create(SequenceStep, { order: 5, type: 1, x1: 365, y1: 280, delay: 2000 }),
                     ];
                     const denySeq = queryRunner.manager.create(Sequence, {
                         name: 'Denegar Visita',

@@ -4,12 +4,13 @@ import { AdbService } from '../application/adb.service';
 import { Device } from '../../a.entities/dev_device.entity';
 import { CondoviveService } from './condovive.service';
 import { AdbInstance } from '../application/adb.service';
+import { GpioService } from '../application/gpio.service';
 
 @Injectable()
 export class AutomationFactory {
   // Nota: inyectamos AdbService si lo necesitas (no usado aquí)
-  createCondoviveService(adbInstance: AdbInstance, device: Device): CondoviveService {
+  createCondoviveService(adbInstance: AdbInstance, device: Device, gpioService: GpioService): CondoviveService {
     // CondoviveService en esta refactor debe exponerse por métodos, no depender de DI para Device.
-    return new CondoviveService(device, adbInstance);
+    return new CondoviveService(device, adbInstance, gpioService);
   }
 }

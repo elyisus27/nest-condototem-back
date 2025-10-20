@@ -13,12 +13,13 @@ import { SequenceExecutorService } from './automation/sequence-executore.service
 import { DevicesService } from './application/devices.service';
 import { DevicesController } from './devices.controller';
 import { AutomationSchedule } from './automation/automation.schedule';
+import { GpioService } from './application/gpio.service';
 
 
 @Module({
   imports: [TypeOrmModule.forFeature([Device])],
   controllers: [DevicesController,  AdbController],
-  providers: [DevicesService, AutomationService, AdbService, AutomationFactory, SequenceExecutorService, AutomationSchedule,],
+  providers: [DevicesService, AutomationService, AdbService, AutomationFactory, SequenceExecutorService, AutomationSchedule, GpioService],
   exports: [DevicesService],
 })
 export class DevicesModule { }
