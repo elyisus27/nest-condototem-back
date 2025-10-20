@@ -29,8 +29,11 @@ services:
     ports:
       - "3001:3001"
     volumes:
-      - /dev/bus/usb:/dev/bus/usb
+      - /dev/bus/usb:/dev/bus/usb 
       - adb_data:/root/.android
+      - /sys/class/gpio:/sys/class/gpio
+      - /dev/mem:/dev/mem
+      - /dev/gpiomem:/dev/gpiomem
     links:
       - db
     environment:
@@ -40,7 +43,7 @@ services:
       DB_USER: reservauser
       DB_PASS: Fr4cCP455w0rd
       DB_NAME: condototem
-      DATABASE_SYNC: 1
+      DATABASE_SYNC: 0
       JWT_SECRET: R3s3rv4
 
       APP_PORT: 3001
@@ -70,4 +73,3 @@ networks:
 volumes:
   condototem-data:
   adb_data:
-

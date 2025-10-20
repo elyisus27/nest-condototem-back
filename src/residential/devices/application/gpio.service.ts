@@ -7,6 +7,7 @@ export class GpioService {
     private gpio: any;
 
     constructor() {
+         this.logger.log(`Arquitectura detectada: ${process.arch}`);
         try {
             // Intenta requerir la librería solo si existe
             if (process.arch.startsWith('arm')) {
