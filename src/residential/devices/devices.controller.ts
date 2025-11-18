@@ -86,6 +86,20 @@ export class DevicesController {
     }
   }
 
+  @Post('gpio/:adbSerial')
+  async writeGpio(@Param('adbSerial') adbSerial: string): Promise<any> {
+    try {
+
+      const screenshotData = await this.deviceService.writegpio(adbSerial);
+      // if (!screenshotData) {
+      //   throw new NotFoundException(`No se encontró un servicio para el dispositivo: ${adbSerial}`);
+      // }
+      return { success: true, data: screenshotData };
+    } catch (error) {
+      this.logger.error(`Error al escribir io. ${adbSerial}: ${error.message}`);
+      return { success: false, message: error.message };
+    }
+  }
 
   @Post('save')
   addOrUpdate(@Body() updateClientDto: CreateDeviceDto) {

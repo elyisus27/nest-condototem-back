@@ -22,8 +22,14 @@ export class Device {
     @OneToMany(() => Sequence, seq => seq.device, { cascade: true, eager: true })
     sequences?: Sequence[];
 
-    @Column({ type: 'int', nullable: true })
+    @Column({ name: 'gpio_pin', type: 'int', default: 1 })
     gpioPin?: number;
+
+    @Column({ name: 'ms_pulse', type: 'int', default: 200 })
+    msPulse?: number;
+
+    @Column({ name: 'tag_enabled', type: 'tinyint', width: 1, comment: 'Property indicating if a registry is enabled for automation loop', default: 1 })
+    tagEnabled?: number;
 
     @Column({ name: 'tag_active', type: 'tinyint', width: 1, comment: 'Property indicating if a registry is actived', default: 1 })
     tagActive?: number;

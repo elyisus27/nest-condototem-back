@@ -20,6 +20,6 @@ import { GpioService } from './application/gpio.service';
   imports: [TypeOrmModule.forFeature([Device])],
   controllers: [DevicesController,  AdbController],
   providers: [DevicesService, AutomationService, AdbService, AutomationFactory, SequenceExecutorService, AutomationSchedule, GpioService],
-  exports: [DevicesService],
+  exports: [DevicesService, GpioService],
 })
 export class DevicesModule { }

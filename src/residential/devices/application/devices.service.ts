@@ -7,6 +7,8 @@ import { CreateDeviceDto } from '../dto/create-device.dto';
 import { TableFiltersDto } from '../../../globals/tableFilters.dto';
 import { SequenceExecutorService } from '../automation/sequence-executore.service';
 import { CondoviveService } from '../automation/condovive.service';
+import { GpioService } from './gpio.service';
+import { spawnSync } from 'child_process';
 
 @Injectable()
 export class DevicesService {
@@ -17,6 +19,7 @@ export class DevicesService {
     @InjectRepository(Device)
     private readonly devRepo: Repository<Device>,
     private readonly seqExecutor: SequenceExecutorService,
+    private readonly gpio: GpioService
   ) { }
 
   // onApplicationBootstrap() {
@@ -24,8 +27,38 @@ export class DevicesService {
   //   this.logger.log('DevicesService bootstrap ready.');
   // }
 
+  async onModuleInit() {
+    this.logger.log('Inicializando conexiones ADB a dispositivos WiFi...');
+
+    const devices = await this.devRepo.find(); // o el método que uses para listar dispositivos
+
+    for (const d of devices) {
+      const serial = d.adbDevice;
+      if (!serial) continue;
+
+      // Verifica si es IP:PORT (formato de conexión WiFi)
+      if (/^\d{1,3}(\.\d{1,3}){3}:\d+$/.test(serial)) {
+        this.logger.log(`→ ADB connect ${serial}`);
+        const result = spawnSync('adb', ['connect', serial], { encoding: 'utf8' });
+
+        if (result.error) {
+          this.logger.error(`❌ Error conectando ${serial}: ${result.error.message}`);
+          continue;
+        }
+
+        if (result.stdout.includes('connected')) {
+          this.logger.log(`✅ ${serial} conectado vía WiFi`);
+        } else {
+          this.logger.warn(`⚠️ ${serial}: ${result.stdout.trim()}`);
+        }
+      }
+    }
+
+    this.logger.log('Conexiones ADB inicializadas.');
+  }
+
   async findAll(): Promise<Device[]> {
-    return await this.devRepo.find({ relations: ['sequences', 'sequences.steps'] });
+    return await this.devRepo.find({where:{tagEnabled :1}, relations: ['sequences', 'sequences.steps'] });
   }
 
   async listPaginated(filters: TableFiltersDto) {
@@ -64,7 +97,7 @@ export class DevicesService {
   }
 
   public async getDeviceScreenshot(adbSerial: string): Promise<string> {
-    const condoviveService:CondoviveService = this.activeDevices[adbSerial];
+    const condoviveService: CondoviveService = this.activeDevices[adbSerial];
     if (!condoviveService) {
       throw new NotFoundException(`No se encontró un servicio activo para el dispositivo: ${adbSerial}`);
     }
@@ -73,7 +106,7 @@ export class DevicesService {
   }
 
   public async closeAllApps(adbSerial: string): Promise<void> {
-    const condoviveService:CondoviveService = this.activeDevices[adbSerial];
+    const condoviveService: CondoviveService = this.activeDevices[adbSerial];
     if (!condoviveService) {
       throw new NotFoundException(`No se encontró un servicio activo para el dispositivo: ${adbSerial}`);
     }
@@ -104,6 +137,14 @@ export class DevicesService {
       throw new NotFoundException(`No se encontró un servicio activo para el dispositivo: ${adbSerial}`);
     }
     return condoviveService.startCycle(this.seqExecutor);
+  }
+
+  public async writegpio(adbSerial: string): Promise<void> {
+    const data = await this.devRepo.findOneBy({ adbDevice: In([adbSerial]) });
+    data.gpioPin
+    data.msPulse
+    await this.gpio.pulse(data.gpioPin, data.msPulse);
+    //return { ok: true, pin };
   }
 
 

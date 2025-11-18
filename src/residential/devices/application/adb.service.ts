@@ -28,7 +28,7 @@ export class AdbInstance {
   private readonly logger: Logger;
   private logProcess: any;
   public readonly cameraEvent = new EventEmitter();
-  private readonly triggerLog = 'disconnect: Disconnected client for camera 1';
+  private readonly triggerLog = 'disconnect: Disconnected client for camera 0';// o camera 1
   private readonly APP_PACKAGE = 'com.condovive.guard';
 
   constructor(public readonly device: Device) {
@@ -51,9 +51,19 @@ export class AdbInstance {
         }
       });
       proc.on('close', (code) => {
-        if (code === 0) resolve(out);
-        else reject(new Error(`ADB failed (${code}) - ${this.device.adbDevice}`));
+        if (code === 0) {
+          resolve(out);
+        } else {
+          this.logger.error(`[ADB:${this.device.adbDevice}] failed (${code}) args: ${args.join(' ')}`);
+          this.logger.error(`[ADB:${this.device.adbDevice}] stdout: ${out}`);
+          // Añade una lectura del stderr acumulado:
+          // (declara let errOut = ''; arriba)
+          // y en stderr.on('data', ...) => errOut += msg
+          this.logger.error(`[ADB:${this.device.adbDevice}] stderr: ${out}`);
+          reject(new Error(`ADB failed (${code}) - ${this.device.adbDevice}`));
+        }
       });
+
       proc.on('error', (err) => reject(err));
     });
   }
@@ -110,8 +120,8 @@ export class AdbInstance {
 
   // Limpia logcat -> público y dirigido al dispositivo
   public async clearLogcat(): Promise<void> {
-    await this.runAdb(['logcat', '-c']);
     this.logger.debug(`[ADB:${this.device.adbDevice}] logcat limpiado`);
+    await this.runAdb(['logcat', '-c']);
   }
 
   // Force stop app
@@ -140,20 +150,22 @@ export class AdbInstance {
       const line = chunk.toString();
       if (line.includes(this.triggerLog)) {
         this.logger.log(`[ADB:${this.device.adbDevice}] Camera event trigger detected. Dumping UI...`);
+        await this.delay(2000);
         let xml = '';
         let attempts = 0;
         let found = false;
         while (!found && attempts < 5) {
           xml = await this.dumpUI();
-          if (xml.includes('Esta invitación ha expirado') || xml.includes('Anfitrión')) found = true;
+          //console.log(attempts, xml)
+          if (xml.includes('Esta invitación ha expirado') || xml.includes('This Invite Has Expired')|| xml.includes('Anfitrión') || xml.includes('Host')) found = true;
           else {
             attempts++;
             await this.delay(1000);
           }
         }
 
-        if (xml.includes('Esta invitación ha expirado')) this.cameraEvent.emit('cameraClosed', 'denegar visita');
-        else if (xml.includes('Anfitrión')) this.cameraEvent.emit('cameraClosed', 'aceptar visita');
+        if (xml.includes('Esta invitación ha expirado') || xml.includes('This Invite Has Expired')) this.cameraEvent.emit('cameraClosed', 'denegar visita');
+        else if (xml.includes('Anfitrión') || xml.includes('Host')) this.cameraEvent.emit('cameraClosed', 'aceptar visita');
         else this.cameraEvent.emit('cameraClosed', 'unknown');
       }
     });

@@ -7,6 +7,7 @@ import { AdbService } from './adb.service';
 import { SequenceExecutorService } from '../automation/sequence-executore.service';
 import { CondoviveService } from '../automation/condovive.service';
 import { GpioService } from './gpio.service';
+import { ConfigService } from '@nestjs/config';
 
 @Injectable()
 export class AutomationService {
@@ -18,8 +19,9 @@ export class AutomationService {
     private readonly adbService: AdbService,
     private readonly factory: AutomationFactory,
     private readonly executor: SequenceExecutorService,
-    private readonly gpioService: GpioService
-  ) {}
+    private readonly gpioService: GpioService,
+    private configService: ConfigService
+  ) { }
 
   // async initializeServices() {
   //   this.logger.log('Cargando dispositivos de la base de datos...');
@@ -77,7 +79,7 @@ export class AutomationService {
 
     for (const device of devices) {
       const adbInstance = this.adbService.createInstance(device);
-      const condovive = this.factory.createCondoviveService(adbInstance, device, this.gpioService);
+      const condovive = this.factory.createCondoviveService(adbInstance, device, this.gpioService, this.configService);
       this.activeDevices[device.adbDevice] = condovive;
       this.devicesService.registerService(device.adbDevice, condovive);
       await condovive.initApp();

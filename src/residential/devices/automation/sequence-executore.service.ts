@@ -21,12 +21,12 @@ export class SequenceExecutorService {
   private async executeStep(step: SequenceStep, adb: AdbInstance) { // 👈 tipo correcto
     switch (step.type) {
       case 1: // tap
-        //this.logger.log(`[STEP ${step.order}] Tap (${step.x1}, ${step.y1})`);
+        this.logger.log(`[STEP ${step.order}] Tap (${step.x1}, ${step.y1})`);
         await adb.tap(step.x1, step.y1);
         break;
 
       case 2: // swipe
-        //this.logger.log(`[STEP ${step.order}] Swipe (${step.x1},${step.y1}) -> (${step.x2},${step.y2})`);
+        this.logger.log(`[STEP ${step.order}] Swipe (${step.x1},${step.y1}) -> (${step.x2},${step.y2})`);
         await adb.swipe(step.x1, step.y1, step.x2, step.y2, step.swapTime || 300);
         break;
 

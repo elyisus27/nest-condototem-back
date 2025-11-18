@@ -13,8 +13,11 @@ async function bootstrap() {
     'http://192.168.11.136:4200',   //phone test
     'http://localhost:4200',
     'http://localhost:4201',
+    
+    'http://192.168.100.12',//orangetwolocal
+    'http://192.168.196.3' //orangetwovpn
 
-    'http://184.73.212.190' //AWS Elastic IP for production environment
+    
 
 
   ];

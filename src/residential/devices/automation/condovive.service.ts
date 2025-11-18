@@ -4,6 +4,8 @@ import { AdbInstance } from '../application/adb.service';
 import { Device } from '../../a.entities/dev_device.entity';
 import { SequenceExecutorService } from './sequence-executore.service';
 import { GpioService } from '../application/gpio.service';
+import { PULSE_ON_DENY } from '../../../config/constants';
+import { ConfigService } from '@nestjs/config';
 
 export class CondoviveService {
   private readonly logger = new Logger(CondoviveService.name);
@@ -14,6 +16,7 @@ export class CondoviveService {
     private device: Device,
     private adb: AdbInstance,
     private readonly gpioService: GpioService,
+    private configService: ConfigService
   ) {
     this.logger = new Logger(`${CondoviveService.name} - ${this.device.adbDevice}`);
   }
@@ -67,9 +70,9 @@ export class CondoviveService {
       // Ejecuta la secuencia correspondiente (si hay)
       if (state === 'aceptar visita' && this.device.gpioPin) {
         this.logger.log(`Abriendo compuerta GPIO ${this.device.gpioPin}`);
-        await this.gpioService.pulse(this.device.gpioPin);
-      } 
-      //else { await this.gpioService.pulse(this.device.gpioPin); }
+        await this.gpioService.pulse(this.device.gpioPin, this.device.msPulse);
+      }
+      else if (this.configService.get(PULSE_ON_DENY)) { await this.gpioService.pulse(this.device.gpioPin, this.device.msPulse); }
 
       if (seqExecutor && this.device.sequences && this.device.sequences.length > 0) {
 
