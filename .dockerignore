@@ -2,7 +2,7 @@ Dockerfile
 README.md
 nest-cli.json
 node_modules/
-package-lock.json
+#package-lock.json
 src/
 temp/
 test/

@@ -28,7 +28,7 @@ export class AdbInstance {
   private readonly logger: Logger;
   private logProcess: any;
   public readonly cameraEvent = new EventEmitter();
-  private readonly triggerLog = 'disconnect: Disconnected client for camera 0';// o camera 1
+  private readonly triggerLog = 'disconnect: Disconnected client for camera 1';// o camera 1 (frontal)
   private readonly APP_PACKAGE = 'com.condovive.guard';
 
   constructor(public readonly device: Device) {
@@ -154,17 +154,17 @@ export class AdbInstance {
         let xml = '';
         let attempts = 0;
         let found = false;
-        while (!found && attempts < 5) {
+        while (!found && attempts < 20) {
           xml = await this.dumpUI();
           //console.log(attempts, xml)
-          if (xml.includes('Esta invitación ha expirado') || xml.includes('This Invite Has Expired')|| xml.includes('Anfitrión') || xml.includes('Host')) found = true;
+          if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente')|| xml.includes('Anfitrión') || xml.includes('Host')) found = true;
           else {
             attempts++;
-            await this.delay(1000);
+            await this.delay(500);
           }
         }
 
-        if (xml.includes('Esta invitación ha expirado') || xml.includes('This Invite Has Expired')) this.cameraEvent.emit('cameraClosed', 'denegar visita');
+        if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente')) this.cameraEvent.emit('cameraClosed', 'denegar visita');
         else if (xml.includes('Anfitrión') || xml.includes('Host')) this.cameraEvent.emit('cameraClosed', 'aceptar visita');
         else this.cameraEvent.emit('cameraClosed', 'unknown');
       }

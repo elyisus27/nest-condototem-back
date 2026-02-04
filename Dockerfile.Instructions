@@ -6,11 +6,13 @@ docker compose up -d
 
 
 #PROCESO DOCKER BUILD MULTIPLATAFORMA (de pcx86 a orange armv7)
+#Ah es que el builder hace dos cosas a la vez, build y load, build y push,
 #Activa el builder multiplataforma:
 docker buildx create --use
-#Luego construye para ARMv7 (como tu Orange Pi):
+#Luego construye para ARMv7 (como la Orange Pi):
 docker buildx build --platform linux/arm/v7 -t jesus2787/nest-condovivetotem-back:latest .
-#Si quieres probarlo en tu máquina sin subirlo a Docker Hub, agrégale --load:
+
+#Si quieres probarlo en tu máquina sin subirlo a Docker Hub, ver peso, agrégale --load:
 docker buildx build --platform linux/arm/v7 -t nest-condovivetotem-back:latest --load .
 docker images
 docker save nest-condovivetotem-back:latest -o nest-condovivetotem-back.tar
@@ -19,5 +21,9 @@ docker load -i nest-condovivetotem-back.tar
 docker buildx build --platform linux/arm/v7 -t nest-condovivetotem-back:latest --output type=docker,dest=nest-condovivetotem-back.tar .
 #subir directo a docker hub
 docker buildx build --platform linux/arm/v7 -t jesus2787/nest-condovivetotem-back:latest --push .
+
+
+#Construir con archivo y otro tag
+docker buildx build -f .\Dockerfile.debian --platform linux/arm/v7 -t jesus2787/nest-condovivetotem-back:debian .
 
 

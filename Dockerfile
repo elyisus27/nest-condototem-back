@@ -1,43 +1,51 @@
+# STAGE 1 — BUILD (ARM)
 #intercambiar segun plataforma x86 / armv7 para solo testear docker build, o seguir dockerfile.instructions
-FROM ubuntu:22.04 
-#FROM arm32v7/ubuntu:22.04
+FROM node:18-bookworm AS builder
+#FROM arm32v7/node:18-bookworm AS builder
 
-RUN apt-get update && \
-    apt-get install -yq \
-        git \
-        build-essential \
-        curl \
-        gnupg \
-        udev \
-        android-tools-adb \
-        usbutils \
-        python3 make g++ && \
-    curl -fsSL https://deb.nodesource.com/setup_18.x | bash - && \
-    apt-get install -yq nodejs && \
-    apt-get autoremove -y && \
-    apt-get clean
+RUN apt-get update && apt-get install -y \
+    git \
+    build-essential \
+    python3 \
+    make \
+    g++ \
+    android-tools-adb \
+    udev \
+ && rm -rf /var/lib/apt/lists/*
 
-# --- Instalar WiringOP desde la rama h3 ---
+# WiringOP
 RUN git clone https://github.com/zhaolei/WiringOP.git -b h3 /tmp/WiringOP && \
-    cd /tmp/WiringOP && \
-    ./build && \
-    rm -rf /tmp/WiringOP
-
-RUN echo 'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", MODE="0666", GROUP="plugdev"' > /etc/udev/rules.d/51-android.rules
+    cd /tmp/WiringOP && ./build && rm -rf /tmp/WiringOP
 
 WORKDIR /usr/src/app
-COPY ./package.json ./package.json
 
-RUN npm install onoff || true   # 👈 instalación aunque no esté en package.json, dependencias orange pi
-RUN npm install                 
+COPY package.json package-lock.json ./
 
+RUN npm ci --omit=dev --build-from-source && npm cache clean --force
 
-COPY start.sh ./
-COPY ./dist ./dist
-
+COPY dist ./dist
+COPY start.sh ./start.sh
 RUN chmod +x start.sh
 
-EXPOSE 3001
+# STAGE 2 — RUNTIME
 
-# Set the entrypoint to the start script
+FROM node:18-bookworm-slim
+
+RUN apt-get update && apt-get install -y \
+    android-tools-adb \
+    libusb-1.0-0 \
+    udev \
+ && rm -rf /var/lib/apt/lists/*
+
+# 🔑 Regla udev para ADB persistente
+RUN echo 'SUBSYSTEM=="usb", ENV{DEVTYPE}=="usb_device", MODE="0666", GROUP="plugdev"' \
+    > /etc/udev/rules.d/51-android.rules
+
+WORKDIR /usr/src/app
+
+COPY --from=builder /usr/src/app/dist ./dist
+COPY --from=builder /usr/src/app/node_modules ./node_modules
+COPY --from=builder /usr/src/app/start.sh ./start.sh
+
+EXPOSE 3001
 CMD ["./start.sh"]
