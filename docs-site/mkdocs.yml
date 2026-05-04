@@ -1,0 +1,59 @@
+site_name: Condovive Totem API
+site_description: Documentacion del backend NestJS para automatizacion de registro de cruces
+
+theme:
+  name: material
+  language: es
+  palette:
+    - scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Modo oscuro
+    - scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Modo claro
+
+plugins:
+  - search
+  - mermaid2
+
+markdown_extensions:
+  - admonition
+  - attr_list
+  - md_in_html
+  - pymdownx.details
+  - pymdownx.superfences:
+      custom_fences:
+        - name: mermaid
+          class: mermaid
+          format: !!python/name:pymdownx.superfences.fence_code_format
+
+nav:
+  - Inicio: index.md
+  - Administracion:
+      - Vision general: administracion/index.md
+      - Operacion del sistema: administracion/operacion.md
+  - Developer:
+      - Resumen tecnico: developer/index.md
+      - Lifecycle y arranque: developer/lifecycle.md
+      - Modulos y responsabilidades: developer/modulos.md
+      - Automatizacion ADB/GPIO: developer/automatizacion.md
+      - API y endpoints: developer/api.md
+      - Datos y configuracion: developer/datos-configuracion.md
+  - Referencia existente:
+      - Arquitectura:
+          - Overview: arquitectura/overview.md
+      - Backend:
+          - Modulos: backend/modules.md
+          - Controladores: backend/controllers.md
+          - Servicios: backend/services.md
+      - Dispositivos:
+          - Flujo de Automatizacion: dispositivos/automation.md
+          - ADB y Control: dispositivos/adb.md
+          - GPIO: dispositivos/gpio.md
+          - DeviceSchedule: dispositivos/deviceSchedule.md

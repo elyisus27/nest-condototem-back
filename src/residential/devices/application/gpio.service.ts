@@ -21,7 +21,7 @@ export class GpioService implements OnModuleInit {
     async onModuleInit() {
         try {
 
-             this.logger.warn(`Arquitectura detectada: ${process.arch}`);            
+             this.logger.warn(`Arquitectura-Detectada -vars: ${process.arch}`);            
             if (process.arch.startsWith('arm')) {
                 // Lógica síncrona (require)
                 this.gpio = require('onoff').Gpio;
@@ -40,9 +40,9 @@ export class GpioService implements OnModuleInit {
                 }
 
             } else {
-                this.logger.warn('GPIO no disponible: simulando (modo Windows)');
+                this.logger.warn('GPIO-No-Disponible. Windows');
             }
-        } catch (err) {
+        } catch (err:any) {
             this.logger.warn(`No se pudo inicializar GPIO: simulando. Error: ${err.message}`);
         }
     }

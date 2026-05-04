@@ -1,14 +1,22 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, Query, ParseIntPipe, ParseBoolPipe, Logger, NotFoundException, HttpCode, InternalServerErrorException, HttpException, HttpStatus } from '@nestjs/common';
+// src/residential/devices/devices.controller.ts
+import {
+  Controller, Get, Post, Body, Param, Delete,
+  Query, ParseIntPipe, ParseBoolPipe,
+  Logger, HttpException, HttpStatus,
+} from '@nestjs/common';
 
+import { DevicesService } from './devices.service';
 import { CreateDeviceDto } from './dto/create-device.dto';
+import { CreateThermalDto } from './dto/create-thermal.dto';
 import { TableFiltersDto } from '../../globals/tableFilters.dto';
-import { ResponseGeneric } from '../../globals/reponse.class';
-import { DevicesService } from './application/devices.service';
 
 @Controller('devices')
 export class DevicesController {
   private readonly logger = new Logger(DevicesController.name);
+
   constructor(private readonly deviceService: DevicesService) { }
+
+  // ─── Listados ─────────────────────────────────────────────────────────────────
 
   @Get()
   findAll() {
@@ -16,94 +24,143 @@ export class DevicesController {
   }
 
   @Get('listPaginated')
-  listPaginated(@Query('page', ParseIntPipe) page: number,
+  listPaginated(
+    @Query('page', ParseIntPipe) page: number,
     @Query('limit', ParseIntPipe) limit: number,
-    @Query('searchtxt',) searchtxt: string,
+    @Query('searchtxt') searchtxt: string,
     @Query('start') start: string,
     @Query('end') end: string,
-    @Query('showInactives', ParseBoolPipe) showInactives: boolean,) {
-
+    @Query('showInactives', ParseBoolPipe) showInactives: boolean,
+  ) {
     const filters: TableFiltersDto = {
-      page: page,
-      limit: limit,
-      searchtxt: searchtxt,
+      page, limit, searchtxt,
       start: new Date(`${start}T00:00:00.000-06:00`),
-      end: new Date(`${end}T23:59:59.0000-06:00`),
-      showInactives: showInactives
-    }
-
-    return this.deviceService.listPaginated(filters)
+      end: new Date(`${end}T23:59:59.000-06:00`),
+      showInactives,
+    };
+    return this.deviceService.listPaginated(filters);
   }
 
-  @Post('close-all-apps/:adbSerial')
-  async closeAllApps(@Param('adbSerial') adbSerial: string) {
-    this.logger.log(`Request to close all apps on device ${adbSerial}`);
+  @Get('crossing-log/listPaginated')
+  CrossingLogListPaginated(
+    @Query('page', ParseIntPipe) page: number,
+    @Query('limit', ParseIntPipe) limit: number,
+    @Query('searchtxt') searchtxt: string,
+    @Query('start') start: string,
+    @Query('end') end: string,
+    @Query('showInactives', ParseBoolPipe) showInactives: boolean,
+  ) {
+    const filters: TableFiltersDto = {
+      page, limit, searchtxt,
+      start: new Date(`${start}T00:00:00.000-06:00`),
+      end: new Date(`${end}T23:59:59.000-06:00`),
+      showInactives,
+    };
+    return this.deviceService.CrossingLogListPaginated(filters);
+  }
+
+
+
+
+  // ─── Control de ciclo ────────────────────────────────────────────────────────
+
+  @Post('start-services/:adbSerial')
+  async startServices(@Param('adbSerial') adbSerial: string) {
     try {
-      await this.deviceService.closeAllApps(adbSerial);
-      return { success: true, message: `All apps closed on device ${adbSerial}` };
+      await this.deviceService.startServices(adbSerial);
+      return { success: true, message: `Ciclo iniciado para ${adbSerial}` };
     } catch (error) {
-      this.logger.error(`Failed to close apps on ${adbSerial}: ${error.message}`);
+      const err = error as Error;
+
       throw new HttpException(
-        { success: false, message: error.message },
-        HttpStatus.INTERNAL_SERVER_ERROR,
+        { success: false, message: err.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
       );
     }
   }
 
-  @Post('/restart-services/:adbSerial')
-  async restartServices(@Param('adbSerial') adbSerial: string) {
-    this.logger.log(`Request to restart services on device ${adbSerial}`);
-    await this.deviceService.restartServices(adbSerial);
-    return { success: true, message: `Services restarted on device ${adbSerial}` };
-  }
-
-  @Post('/stop-services/:adbSerial')
+  @Post('stop-services/:adbSerial')
   async stopServices(@Param('adbSerial') adbSerial: string) {
-    this.logger.log(`Request to stop services on device ${adbSerial}`);
-    await this.deviceService.stopServices(adbSerial);
-    return { success: true, message: `Services stopped on device ${adbSerial}` };
+    try {
+      await this.deviceService.stopServices(adbSerial);
+      return { success: true, message: `Ciclo detenido para ${adbSerial}` };
+    } catch (error) {
+      const err = error as Error;
+
+      throw new HttpException(
+        { success: false, message: err.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
 
-  @Post('start-services/:adbSerial/')
-  async startServices(@Param('adbSerial') adbSerial: string) {
-    this.logger.log(`Request to start services on device ${adbSerial}`);
-    await this.deviceService.startServices(adbSerial);
-    return { success: true, message: `Services started on device ${adbSerial}` };
+  @Post('restart-services/:adbSerial')
+  async restartServices(@Param('adbSerial') adbSerial: string) {
+    try {
+      await this.deviceService.restartServices(adbSerial);
+      return { success: true, message: `Ciclo reiniciado para ${adbSerial}` };
+    } catch (error) {
+      const err = error as Error;
+
+      throw new HttpException(
+        { success: false, message: err.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
+    }
   }
+
+  // ─── Screenshot ───────────────────────────────────────────────────────────────
 
   @Get('screenshot/:adbSerial')
-  async getScreenshot(@Param('adbSerial') adbSerial: string): Promise<any> {
+  async getScreenshot(@Param('adbSerial') adbSerial: string) {
     try {
-
-      const screenshotData = await this.deviceService.getDeviceScreenshot(adbSerial);
-      if (!screenshotData) {
-        throw new NotFoundException(`No se encontró un servicio para el dispositivo: ${adbSerial}`);
-      }
-      return { success: true, data: screenshotData };
+      const data = await this.deviceService.getDeviceScreenshot(adbSerial);
+      return { success: true, data };
     } catch (error) {
-      this.logger.error(`Error al obtener la captura de pantalla para ${adbSerial}: ${error.message}`);
-      return { success: false, message: error.message };
+      const err = error as Error;
+
+      this.logger.error(`Screenshot error ${adbSerial}: ${err.message}`);
+
+      throw new HttpException(
+        { success: false, message: err.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
+
+  // ─── GPIO manual ──────────────────────────────────────────────────────────────
 
   @Post('gpio/:adbSerial')
-  async writeGpio(@Param('adbSerial') adbSerial: string): Promise<any> {
+  async writeGpio(@Param('adbSerial') adbSerial: string) {
     try {
-
-      const screenshotData = await this.deviceService.writegpio(adbSerial);
-      // if (!screenshotData) {
-      //   throw new NotFoundException(`No se encontró un servicio para el dispositivo: ${adbSerial}`);
-      // }
-      return { success: true, data: screenshotData };
+      await this.deviceService.writegpio(adbSerial);
+      return { success: true };
     } catch (error) {
-      this.logger.error(`Error al escribir io. ${adbSerial}: ${error.message}`);
-      return { success: false, message: error.message };
+      const err = error as Error;
+      this.logger.error(`GPIO error ${adbSerial}: ${err.message}`);
+
+      throw new HttpException(
+        { success: false, message: err.message },
+        HttpStatus.INTERNAL_SERVER_ERROR
+      );
     }
   }
 
+  // ─── CRUD ────────────────────────────────────────────────────────────────────
+
   @Post('save')
-  addOrUpdate(@Body() updateClientDto: CreateDeviceDto) {
-    return this.deviceService.save(updateClientDto);
+  addOrUpdate(@Body() dto: CreateDeviceDto) {
+    return this.deviceService.save(dto);
+  }
+
+  @Post('thermal')
+  createThermal(@Body() dto: CreateThermalDto) {
+    return this.deviceService.create(dto);
+  }
+
+  @Post('adb_wifi_update')
+  updateAdbAddr(@Body() body: any) {
+    return this.deviceService.updateAdbAddr(body);
   }
 
   @Delete(':id')

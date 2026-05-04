@@ -2,24 +2,29 @@ import { Module } from '@nestjs/common';
 
 
 import { Device } from '../a.entities/dev_device.entity';
+import { CrossingLog } from '../a.entities/dev_crossing_log.entity';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AdbController } from './controllers/adb.controller';
+
 import { AdbService } from './application/adb.service';
-import { AutomationService } from './application/automation.service';
-import { AutomationFactory } from './automation/automation.factory';
-import { CondoviveService } from './automation/condovive.service';
+
+
+
 import { SequenceExecutorService } from './automation/sequence-executore.service';
 //import { AutomationController } from './controllers/automation.controller';
-import { DevicesService } from './application/devices.service';
+
 import { DevicesController } from './devices.controller';
-import { AutomationSchedule } from './automation/automation.schedule';
+
 import { GpioService } from './application/gpio.service';
+import { DeviceThermalLog } from '../a.entities/dev_thermal_log.entity';
+import { DevicesService } from './devices.service';
+import { AutomationService } from './application/automation.service';
+import { DevicesSchedule } from './devices.schedule';
 
 
 @Module({
-  imports: [TypeOrmModule.forFeature([Device])],
-  controllers: [DevicesController,  AdbController],
-  providers: [DevicesService, AutomationService, AdbService, AutomationFactory, SequenceExecutorService, AutomationSchedule, GpioService],
+  imports: [TypeOrmModule.forFeature([Device, DeviceThermalLog, CrossingLog])],
+  controllers: [DevicesController],
+  providers: [DevicesService, AdbService, SequenceExecutorService, GpioService, AutomationService,DevicesSchedule],
   exports: [DevicesService, GpioService],
 })
 export class DevicesModule { }

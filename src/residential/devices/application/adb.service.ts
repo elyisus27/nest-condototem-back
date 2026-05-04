@@ -3,6 +3,21 @@ import { Injectable, Logger } from '@nestjs/common';
 import { spawn } from 'child_process';
 import { EventEmitter } from 'events';
 import { Device } from '../../a.entities/dev_device.entity';
+import { Timeout } from '@nestjs/schedule';
+
+
+// Datos extraídos del UI dump al detectar evento de cámara
+export interface CameraEvent {
+  state: 'aceptar visita' | 'denegar visita' | 'unknown';
+  hostName: string | null;
+  hostUnit: string | null;
+  coHost: string | null;
+  visitorName: string | null;
+  visitorPhone: string | null;
+  visitorEmail: string | null;
+  visitType: string | null;
+  rawXml: string;
+}
 
 @Injectable()
 export class AdbService {
@@ -20,10 +35,7 @@ export class AdbService {
   }
 }
 
-/**
- * Clase que contiene la implementación real por dispositivo.
- * Mantiene logcat, runAdb y métodos típicos.
- */
+
 export class AdbInstance {
   private readonly logger: Logger;
   private logProcess: any;
@@ -106,35 +118,13 @@ export class AdbInstance {
     });
   }
 
-  // Dump UI (uiautomator)
-  private dumpUI(): Promise<string> {
-    return new Promise((resolve, reject) => {
-      const proc = spawn('adb', ['-s', this.device.adbDevice, 'exec-out', 'uiautomator', 'dump', '/dev/tty']);
-      let out = '';
-      proc.stdout.on('data', (d) => (out += d.toString()));
-      proc.stderr.on('data', (d) => this.logger.error(`[dumpUI] ${d.toString()}`));
-      proc.on('close', () => resolve(out));
-      proc.on('error', (err) => reject(err));
-    });
-  }
 
-  // Limpia logcat -> público y dirigido al dispositivo
-  public async clearLogcat(): Promise<void> {
-    this.logger.debug(`[ADB:${this.device.adbDevice}] logcat limpiado`);
-    await this.runAdb(['logcat', '-c']);
-  }
 
-  // Force stop app
-  public async forceStopApp(): Promise<void> {
-    this.logger.log(`[ADB:${this.device.adbDevice}] force-stop ${this.APP_PACKAGE}`);
-    await this.runAdb(['shell', 'am', 'force-stop', this.APP_PACKAGE]);
-  }
 
-  // Lanzar app
-  public async launchApp(): Promise<void> {
-    this.logger.log(`[ADB:${this.device.adbDevice}] launching ${this.APP_PACKAGE}`);
-    await this.runAdb(['shell', 'monkey', '-p', this.APP_PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1']);
-  }
+
+
+
+
 
   // Escuchar logcat (CameraService) -> emite cameraClosed events
   public async startListeningForCameraEvents(): Promise<void> {
@@ -154,19 +144,34 @@ export class AdbInstance {
         let xml = '';
         let attempts = 0;
         let found = false;
-        while (!found && attempts < 20) {
+        while (!found && attempts < 120) {
           xml = await this.dumpUI();
           //console.log(attempts, xml)
-          if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente')|| xml.includes('Anfitrión') || xml.includes('Host')) found = true;
+          if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente') || xml.includes('Anfitrión') || xml.includes('Co-Anfitriones') || xml.includes('Esta invitación ha sido')) found = true;
           else {
             attempts++;
             await this.delay(500);
           }
         }
 
-        if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente')) this.cameraEvent.emit('cameraClosed', 'denegar visita');
-        else if (xml.includes('Anfitrión') || xml.includes('Host')) this.cameraEvent.emit('cameraClosed', 'aceptar visita');
-        else this.cameraEvent.emit('cameraClosed', 'unknown');
+        // Determinar estado
+        let state: 'aceptar visita' | 'denegar visita' | 'unknown';
+        if (xml.includes('Esta invitación ha expirado') || xml.includes('Esta invitación ha sido registrada previamente') || xml.includes('Esta invitación ha sido')) {
+          state = 'denegar visita';
+        } else if (xml.includes('Anfitrión') || xml.includes('Host') || xml.includes('Co-Anfitriones')) {
+          state = 'aceptar visita';
+        } else {
+          state = 'unknown';
+        }
+
+        // Parsear datos del XML
+        const event: CameraEvent = {
+          state,
+          ...this.parseXmlData(xml),
+          rawXml: xml,
+        };
+
+        this.cameraEvent.emit('cameraClosed', event);
       }
     });
 
@@ -187,4 +192,147 @@ export class AdbInstance {
   }
 
 
+
+
+
+
+
+
+
+  //#region new standirezed version
+
+
+  // Dump UI (uiautomator)
+  private dumpUI(): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const proc = spawn('adb', ['-s', this.device.adbDevice, 'exec-out', 'uiautomator', 'dump', '/dev/tty']);
+      let out = '';
+      proc.stdout.on('data', (d) => (out += d.toString()));
+      proc.stderr.on('data', (d) => this.logger.error(`[dumpUI] ${d.toString()}`));
+      proc.on('close', () => resolve(out));
+      proc.on('error', (err) => reject(err));
+    });
+  }
+
+  async waitForUI(predicate: (xml: string) => boolean, timeout = 10000) {
+    const start = Date.now();
+
+    while (Date.now() - start < timeout) {
+      const xml = await this.dumpUI();
+
+      if (predicate(xml)) return true;
+
+      await this.delay(200); // tu polling
+    }
+
+    return false;
+  }
+
+  // Force stop app
+  public async forceStopApp(): Promise<void> {
+    this.logger.log(`[ADB:${this.device.adbDevice}] force-stop ${this.APP_PACKAGE}`);
+    await this.runAdb(['shell', 'am', 'force-stop', this.APP_PACKAGE]);
+  }
+
+  // Limpia logcat -> público y dirigido al dispositivo
+  public async clearLogcat(): Promise<void> {
+    this.logger.debug(`[ADB:${this.device.adbDevice}] logcat limpiado`);
+    await this.runAdb(['logcat', '-c']);
+  }
+
+  // Lanzar app
+  public async launchApp(): Promise<void> {
+    this.logger.log(`[ADB:${this.device.adbDevice}] launching ${this.APP_PACKAGE}`);
+    await this.runAdb(['shell', 'monkey', '-p', this.APP_PACKAGE, '-c', 'android.intent.category.LAUNCHER', '1']);
+  }
+
+
+
+
+  //endregion
+
+  // ─── Parser de datos del UI dump ─────────────────────────────
+
+  private parseXmlData(xml: string): Omit<CameraEvent, 'state' | 'rawXml'> {
+    // Extraer todos los textos del XML con sus bounds
+    const nodeRegex = /text="([^"]+)"[^>]*bounds="\[(\d+),(\d+)\]\[(\d+),(\d+)\]"/g;
+    const nodes: { text: string; x1: number; y1: number; x2: number; y2: number; cx: number; cy: number }[] = [];
+
+    let match;
+    while ((match = nodeRegex.exec(xml)) !== null) {
+      const text = match[1].trim();
+      if (!text) continue;
+      const x1 = +match[2], y1 = +match[3], x2 = +match[4], y2 = +match[5];
+      nodes.push({ text, x1, y1, x2, y2, cx: (x1 + x2) / 2, cy: (y1 + y2) / 2 });
+    }
+
+    // Solo nodos en el área de contenido principal (x > 110, fuera del sidebar)
+    const main = nodes.filter(n => n.x1 > 110);
+
+    // ── Anfitrión: texto en fila superior (y < 200), x > 110 ──
+    // En pantalla expirada: unidad está en y~93, nombre en y~159
+    // En pantalla válida: anfitrión/nombre aparecen en filas similares
+    const topNodes = main.filter(n => n.y1 < 200).sort((a, b) => a.y1 - b.y1);
+
+    // Unidad: patrón "NNNN - N" o "NNNN-N"
+    const unitNode = topNodes.find(n => /^\d{3,4}\s*-\s*\d+$/.test(n.text));
+    const hostUnit = unitNode?.text ?? null;
+
+    // Nombre anfitrión: primer texto largo (>5 chars) en área top que no sea unidad
+    const hostNameNode = topNodes.find(n =>
+      n.text.length > 5 &&
+      n !== unitNode &&
+      !['La Reserva', 'Unidades', 'Directorio', 'Visitas', 'Morosos'].includes(n.text)
+    );
+    const hostName = hostNameNode?.text ?? null;
+
+    // ── Co-anfitrión: texto que sigue después de "Co-Anfitriones" o "Co-Host" ──
+    const coHostLabelIdx = main.findIndex(n =>
+      n.text.includes('Co-Anfitri') || n.text.includes('Co-Host'));
+    let coHost: string | null = null;
+    if (coHostLabelIdx >= 0) {
+      const afterLabel = main.slice(coHostLabelIdx + 1).find(n => n.text.length > 3);
+      coHost = afterLabel?.text ?? null;
+    }
+
+    // ── Tipo de visita: texto que sigue al ícono de paleta (campo Tipo) ──
+    // En el XML aparece label "Tipo" seguido del valor en fila siguiente
+    const tipoIdx = main.findIndex(n => n.text === 'Tipo');
+    let visitType: string | null = null;
+    if (tipoIdx >= 0) {
+      const tipoNode = main[tipoIdx];
+      const afterTipo = main.find(n => n.y1 > tipoNode.y2 && n.x1 > 110 && n.text.length > 2
+        && !['Entrada', 'Salida', 'Rechazar', 'Aprobar'].includes(n.text));
+      visitType = afterTipo?.text ?? null;
+    }
+
+    // ── Campos del visitante: label + valor en misma fila o fila siguiente ──
+    // Patrón: el label (Nombre Visita, Celular, Correo) y el valor están
+    // en el mismo bounds o en nodos consecutivos
+    const getValue = (labelText: string): string | null => {
+      const labelNode = main.find(n => n.text === labelText);
+      if (!labelNode) return null;
+      // Buscar nodo con mismo y1 o y2 pero diferente texto (el valor)
+      const valueNode = main.find(n =>
+        n !== labelNode &&
+        Math.abs(n.cy - labelNode.cy) < 20 &&
+        n.text !== labelText &&
+        n.text.length > 0 &&
+        n.text !== 'undefined'
+      );
+      return valueNode?.text ?? null;
+    };
+
+    return {
+      hostName,
+      hostUnit,
+      coHost: null,
+      visitorName: coHost || getValue('Nombre Visita'),
+      visitorPhone: getValue('Celular'),
+      visitorEmail: getValue('Correo'),
+      visitType,
+    };
+  }
+
 }
+

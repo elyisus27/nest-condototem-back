@@ -1,4 +1,4 @@
-$IP_TABLET = "192.168.100.14" # <--- CAMBIA ESTO POR LA IP FIJA DE TU TABLET
+$IP_TABLET = "192.168.100.25" # <--- CAMBIA ESTO POR LA IP FIJA DE TU TABLET
 $RANGO_PUERTOS = 30000..45000
 
 Write-Host "Buscando puerto de ADB inalambrico en $IP_TABLET..." -ForegroundColor Cyan

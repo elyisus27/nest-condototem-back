@@ -1,0 +1,3 @@
+# Timeouts
+
+Previenen loops infinitos.

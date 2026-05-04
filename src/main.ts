@@ -2,13 +2,14 @@ import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
 import { APP_PORT } from './config/constants';
-import * as session from 'express-session';
+import session = require('express-session');
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
   const config: ConfigService = app.get(ConfigService);
   const allowedOrigins = [
-    'http://192.168.196.1',   
+    'http://192.168.196.1',
+    'http://192.168.100.4',   
     'http://192.168.196.1:4201',  
     'http://192.168.11.136:4200',   //phone test
     'http://localhost:4200',

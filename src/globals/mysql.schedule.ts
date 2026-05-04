@@ -223,7 +223,7 @@ export class MySQLInsertTablesService {
                 await queryRunner.commitTransaction();
 
 
-            } catch (err) {
+            } catch (err:any) {
                 // Si algo falla, revierte todos los cambios
                 await queryRunner.rollbackTransaction();
                 this.logger.error('Error al generar data inicial:', err.message);

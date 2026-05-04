@@ -1,0 +1,158 @@
+<?xml version='1.0' encoding='UTF-8' standalone='yes'?>
+<hierarchy rotation="0">
+    <node index="0" text="" resource-id="" class="android.widget.FrameLayout"
+        package="com.condovive.guard" content-desc="" checkable="false" checked="false"
+        clickable="false" enabled="true" focusable="false" focused="false" scrollable="false"
+        long-clickable="false" password="false" selected="false" bounds="[0,0][1024,600]">
+        <node index="0" text="" resource-id="" class="android.widget.LinearLayout"
+            package="com.condovive.guard" content-desc="" checkable="false" checked="false"
+            clickable="false" enabled="true" focusable="false" focused="false" scrollable="false"
+            long-clickable="false" password="false" selected="false" bounds="[0,0][1024,552]">
+            <node index="0" text="" resource-id="android:id/content"
+                class="android.widget.FrameLayout" package="com.condovive.guard" content-desc=""
+                checkable="false" checked="false" clickable="false" enabled="true" focusable="false"
+                focused="false" scrollable="false" long-clickable="false" password="false"
+                selected="false" bounds="[0,28][1024,552]">
+                <node index="0" text="" resource-id="" class="android.widget.FrameLayout"
+                    package="com.condovive.guard" content-desc="" checkable="false" checked="false"
+                    clickable="false" enabled="true" focusable="false" focused="false"
+                    scrollable="false" long-clickable="false" password="false" selected="false"
+                    bounds="[0,28][1024,552]">
+                    <node index="0" text="" resource-id="" class="android.view.ViewGroup"
+                        package="com.condovive.guard" content-desc="" checkable="false"
+                        checked="false" clickable="false" enabled="true" focusable="false"
+                        focused="false" scrollable="false" long-clickable="false" password="false"
+                        selected="false" bounds="[0,28][1024,552]">
+                        <node index="0" text="" resource-id="" class="android.view.ViewGroup"
+                            package="com.condovive.guard" content-desc="" checkable="false"
+                            checked="false" clickable="false" enabled="true" focusable="false"
+                            focused="false" scrollable="false" long-clickable="false"
+                            password="false" selected="false" bounds="[0,28][1024,552]">
+                            <node index="0" text="" resource-id="undefined.modal.TouchableOverlay"
+                                class="android.view.ViewGroup" package="com.condovive.guard"
+                                content-desc="" checkable="false" checked="false" clickable="false"
+                                enabled="true" focusable="false" focused="false" scrollable="false"
+                                long-clickable="false" password="false" selected="false"
+                                bounds="[0,28][1024,552]">
+                                <node NAF="true" index="0" text="" resource-id=""
+                                    class="android.view.ViewGroup" package="com.condovive.guard"
+                                    content-desc="" checkable="false" checked="false"
+                                    clickable="true" enabled="true" focusable="true" focused="false"
+                                    scrollable="false" long-clickable="false" password="false"
+                                    selected="false" bounds="[0,28][1024,552]" />
+                            </node>
+                            <node index="1" text="" resource-id="undefined.overlayFadingBackground"
+                                class="android.view.ViewGroup" package="com.condovive.guard"
+                                content-desc="" checkable="false" checked="false" clickable="false"
+                                enabled="true" focusable="false" focused="false" scrollable="false"
+                                long-clickable="false" password="false" selected="false"
+                                bounds="[0,28][1024,552]" />
+                            <node index="2" text="" resource-id="" class="android.view.ViewGroup"
+                                package="com.condovive.guard" content-desc="" checkable="false"
+                                checked="false" clickable="false" enabled="true" focusable="false"
+                                focused="false" scrollable="false" long-clickable="false"
+                                password="false" selected="false" bounds="[51,177][973,404]">
+                                <node index="0" text="" resource-id=""
+                                    class="android.view.ViewGroup" package="com.condovive.guard"
+                                    content-desc="" checkable="false" checked="false"
+                                    clickable="false" enabled="true" focusable="false"
+                                    focused="false" scrollable="false" long-clickable="false"
+                                    password="false" selected="false" bounds="[51,177][973,404]">
+                                    <node index="0" text="" resource-id=""
+                                        class="android.view.ViewGroup" package="com.condovive.guard"
+                                        content-desc="" checkable="false" checked="false"
+                                        clickable="false" enabled="true" focusable="false"
+                                        focused="false" scrollable="false" long-clickable="false"
+                                        password="false" selected="false" bounds="[51,177][973,404]">
+                                        <node index="0" text="" resource-id=""
+                                            class="android.view.ViewGroup"
+                                            package="com.condovive.guard" content-desc=""
+                                            checkable="false" checked="false" clickable="false"
+                                            enabled="true" focusable="false" focused="false"
+                                            scrollable="false" long-clickable="false"
+                                            password="false" selected="false"
+                                            bounds="[482,197][542,257]" />
+                                        <node index="1" text="¿Deseas rechazar a esta visita?"
+                                            resource-id="" class="android.widget.TextView"
+                                            package="com.condovive.guard" content-desc=""
+                                            checkable="false" checked="false" clickable="false"
+                                            enabled="true" focusable="false" focused="false"
+                                            scrollable="false" long-clickable="false"
+                                            password="false" selected="false"
+                                            bounds="[51,262][973,292]" />
+                                        <node index="2"
+                                            text="Esta acción será registrada en el historial de esta visita"
+                                            resource-id="" class="android.widget.TextView"
+                                            package="com.condovive.guard" content-desc=""
+                                            checkable="false" checked="false" clickable="false"
+                                            enabled="true" focusable="false" focused="false"
+                                            scrollable="false" long-clickable="false"
+                                            password="false" selected="false"
+                                            bounds="[61,307][963,330]" />
+                                        <node index="3" text="" resource-id=""
+                                            class="android.widget.Button"
+                                            package="com.condovive.guard" content-desc=""
+                                            checkable="false" checked="false" clickable="true"
+                                            enabled="true" focusable="true" focused="false"
+                                            scrollable="false" long-clickable="false"
+                                            password="false" selected="false"
+                                            bounds="[61,350][196,394]">
+                                            <node index="0" text="" resource-id=""
+                                                class="android.view.ViewGroup"
+                                                package="com.condovive.guard" content-desc=""
+                                                checkable="false" checked="false" clickable="false"
+                                                enabled="true" focusable="false" focused="false"
+                                                scrollable="false" long-clickable="false"
+                                                password="false" selected="false"
+                                                bounds="[81,360][106,385]" />
+                                            <node index="1" text="  Regresar"
+                                                resource-id="undefined.label"
+                                                class="android.widget.TextView"
+                                                package="com.condovive.guard" content-desc=""
+                                                checkable="false" checked="false" clickable="false"
+                                                enabled="true" focusable="false" focused="false"
+                                                scrollable="false" long-clickable="false"
+                                                password="false" selected="false"
+                                                bounds="[106,360][176,384]" />
+                                        </node>
+                                        <node index="4" text="" resource-id=""
+                                            class="android.widget.Button"
+                                            package="com.condovive.guard" content-desc=""
+                                            checkable="false" checked="false" clickable="true"
+                                            enabled="true" focusable="true" focused="false"
+                                            scrollable="false" long-clickable="false"
+                                            password="false" selected="false"
+                                            bounds="[824,350][963,394]">
+                                            <node index="0" text="Rechazar  "
+                                                resource-id="undefined.label"
+                                                class="android.widget.TextView"
+                                                package="com.condovive.guard" content-desc=""
+                                                checkable="false" checked="false" clickable="false"
+                                                enabled="true" focusable="false" focused="false"
+                                                scrollable="false" long-clickable="false"
+                                                password="false" selected="false"
+                                                bounds="[844,360][918,384]" />
+                                            <node index="1" text="" resource-id=""
+                                                class="android.view.ViewGroup"
+                                                package="com.condovive.guard" content-desc=""
+                                                checkable="false" checked="false" clickable="false"
+                                                enabled="true" focusable="false" focused="false"
+                                                scrollable="false" long-clickable="false"
+                                                password="false" selected="false"
+                                                bounds="[918,360][943,385]" />
+                                        </node>
+                                    </node>
+                                </node>
+                            </node>
+                        </node>
+                    </node>
+                </node>
+            </node>
+        </node>
+        <node index="1" text="" resource-id="android:id/navigationBarBackground"
+            class="android.view.View" package="com.condovive.guard" content-desc=""
+            checkable="false" checked="false" clickable="false" enabled="true" focusable="false"
+            focused="false" scrollable="false" long-clickable="false" password="false"
+            selected="false" bounds="[0,552][1024,600]" />
+    </node>
+</hierarchy>

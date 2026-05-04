@@ -33,4 +33,22 @@ export class SequenceStep {
   @JoinColumn({ name: 'sequence_id' })
   @ManyToOne(() => Sequence, seq => seq.sequenceId,  { onDelete: 'CASCADE' })
   sequence: Sequence;
+  
+  // ── Nuevas columnas ──────────────────────────────────────
+  
+  /** Descripción legible del paso, aparece en los logs */
+  @Column({ nullable: true, length: 255 })
+  description: string;
+  
+  /**
+   * Texto (o resource-id) que debe aparecer en el UI dump
+   * ANTES de ejecutar este paso. Si está vacío, no espera.
+   * Ejemplos:
+   *   'Esta invitación ha expirado'
+   *   'Anfitrión'
+   *   '¿Deseas rechazar a esta visita?'
+   *   '¡Excelente!'
+  */
+ @Column({ nullable: true, length: 500 })
+ waitForText: string;
 }

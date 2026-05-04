@@ -12,7 +12,7 @@ import { ScheduleModule } from '@nestjs/schedule';
 import { AuthModule } from './security/auth/auth.module';
 
 import { DevicesModule } from './residential/devices/devices.module';
-import { AutomationSchedule } from './residential/devices/automation/automation.schedule';
+
 
 
 
@@ -26,7 +26,13 @@ import { AutomationSchedule } from './residential/devices/automation/automation.
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
         type: configService.get<any>(DB_TYPE),
-        timezone :'Z',
+        timezone: 'Z',
+        extra: {
+          connectionLimit: 10,
+          // Esto obliga a la sesión de MySQL a trabajar en UTC
+          dateStrings: true, // Envía las fechas como strings para evitar conversiones del driver
+          typeCast: true,
+        },
         host: configService.get<string>(DB_HOST),
         port: +configService.get<number>(DB_PORT),
         username: configService.get<string>(DB_USER),
@@ -47,10 +53,10 @@ import { AutomationSchedule } from './residential/devices/automation/automation.
 
     DevicesModule,
 
-    
+
 
   ],
   controllers: [AppController],
-  providers: [AppService, MySQLInsertTablesService, ],
+  providers: [AppService, MySQLInsertTablesService,],
 })
 export class AppModule { }

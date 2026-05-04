@@ -11,3 +11,5 @@ export const DB_NAME = 'DB_NAME'
 export const DATABASE_SYNC = 'DATABASE_SYNC'
 export const JWT_SECRET = 'JWT_SECRET'
 
+export const RECOVERY_FLAG = ''
+
